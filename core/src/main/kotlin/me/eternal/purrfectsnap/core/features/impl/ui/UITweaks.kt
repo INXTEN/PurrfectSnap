@@ -87,6 +87,12 @@ class UITweaks : Feature("UITweaks") {
             getId("hova_nav_spotlight_tab", "id"),
             getId("hova_nav_spotlight_button", "id")
         ).filter { it != 0 }.toSet()
+        val spotlightNavNames = setOf(
+            "hova_nav_spotlight",
+            "ngs_hova_nav_spotlight",
+            "hova_nav_spotlight_tab",
+            "hova_nav_spotlight_button"
+        )
 
         Resources::class.java.methods.first { it.name == "getDimensionPixelSize"}.hook(
             HookStage.AFTER,
@@ -130,6 +136,11 @@ class UITweaks : Feature("UITweaks") {
                 val parentClassName = event.parent.javaClass.name
                 val isNavigationParent = parentClassName.contains("hova", ignoreCase = true) &&
                     (parentClassName.contains("nav", ignoreCase = true) || parentClassName.contains("tab", ignoreCase = true))
+                val isSpotlightNavById = viewId in spotlightNavIds
+                val isSpotlightNavByName = resourceEntryName != null && spotlightNavNames.contains(resourceEntryName)
+
+                if (isNavigationParent && (isSpotlightNavById || isSpotlightNavByName)) {
+                    view.hideViewCompletely()
                 val contentDescription = view.contentDescription?.toString()
                 val isSpotlightNavById = viewId in spotlightNavIds
                 val isSpotlightNavByName = resourceEntryName?.let {
