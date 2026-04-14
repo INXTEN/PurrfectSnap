@@ -166,11 +166,17 @@ class MessagingTweaks : ConfigContainer() {
         val maxDelayMs = integer("max_delay_ms", defaultValue = 100) {
             inputCheck = { it.toIntOrNull()?.coerceAtLeast(0) != null && it.toInt() > minDelay.get() }
         }
-        val queueSize = integer("queue_size", defaultValue = 1000) {
+        val queueSize = integer("queue_size", defaultValue = 700) {
             inputCheck = { it.toIntOrNull()?.coerceAtLeast(1) != null }
         }
         val retryAttempts = integer("retry_attempts", defaultValue = 5) {
             inputCheck = { it.toIntOrNull()?.coerceAtLeast(1) != null }
+        }
+        val delayBetweenSnaps = integer("delay_between_snaps", defaultValue = 100) {
+            inputCheck = { it.toIntOrNull()?.coerceAtLeast(0) != null }
+        }
+        val delayBetweenConversations = integer("delay_between_conversations", defaultValue = 500) {
+            inputCheck = { it.toIntOrNull()?.coerceAtLeast(0) != null }
         }
         val retryDelay = integer("retry_delay", defaultValue = 3000) {
             inputCheck = { it.toIntOrNull()?.coerceAtLeast(1000) != null }

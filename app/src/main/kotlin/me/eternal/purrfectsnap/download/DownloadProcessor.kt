@@ -648,8 +648,41 @@ class DownloadProcessor (
                         val media = downloadedMedias.entries.first { !it.key.isOverlay }.value
                         val overlayMedia = downloadedMedias.entries.first { it.key.isOverlay }.value
 
-                        val renamedMedia = renameFromFileType(media, FileType.fromFile(media))
-                        val renamedOverlayMedia = renameFromFileType(overlayMedia, FileType.fromFile(overlayMedia))
+                        val mediaFileType = FileType.fromFile(media)
+                        val overlayFileType = FileType.fromFile(overlayMedia)
+
+                        val renamedMedia = renameFromFileType(media, mediaFileType)
+                        val renamedOverlayMedia = renameFromFileType(overlayMedia, overlayFileType)
+
+                        if (mediaFileType.isImage && overlayFileType.isImage) {
+                            runCatching {
+                                callbackOnProgress(translation.format("processing_toast", "path" to media.nameWithoutExtension))
+                                val originalBitmap = BitmapFactory.decodeFile(renamedMedia.absolutePath) ?: throw Exception("Failed to decode original image")
+                                val overlayBitmap = BitmapFactory.decodeFile(renamedOverlayMedia.absolutePath) ?: throw Exception("Failed to decode overlay image")
+
+                                val mergedBitmap = me.eternal.purrfectsnap.core.util.media.PreviewUtils.mergeBitmapOverlay(originalBitmap, overlayBitmap)
+                                val mergedImage: File = File.createTempFile("merged", "." + (mediaFileType.fileExtension ?: "jpg"))
+
+                                val compressFormat = when (mediaFileType) {
+                                    FileType.PNG -> Bitmap.CompressFormat.PNG
+                                    FileType.WEBP -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) Bitmap.CompressFormat.WEBP_LOSSLESS else Bitmap.CompressFormat.WEBP
+                                    else -> Bitmap.CompressFormat.JPEG
+                                }
+
+                                mergedImage.outputStream().use {
+                                    mergedBitmap.compress(compressFormat, 100, it)
+                                }
+
+                                saveMediaToGallery(pendingTask, mergedImage, downloadMetadata)
+                                mergedImage.delete()
+                                renamedOverlayMedia.delete()
+                                renamedMedia.delete()
+                                return@launch
+                            }.onFailure {
+                                remoteSideContext.log.error("Failed to merge image overlay using Bitmap, falling back to FFmpeg", it)
+                            }
+                        }
+
                         val mergedOverlay: File = File.createTempFile("merged", ".mp4")
                         runCatching {
                             callbackOnProgress(translation.format("processing_toast", "path" to media.nameWithoutExtension))

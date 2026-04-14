@@ -149,6 +149,35 @@ class UITweaks : Feature("UITweaks") {
             if (disableSpotlight) {
                 if (shouldHideSpotlightNav(event, spotlightNavIds, spotlightNavNames)) {
                     view.hideViewCompletely()
+                val resourceEntryName = runCatching { context.resources.getResourceEntryName(viewId) }.getOrNull()
+                val parentClassName = event.parent.javaClass.name
+                val isNavigationParent = parentClassName.contains("hova", ignoreCase = true) &&
+                    (parentClassName.contains("nav", ignoreCase = true) || parentClassName.contains("tab", ignoreCase = true))
+                val isSpotlightNavById = viewId in spotlightNavIds
+                val isSpotlightNavByName = resourceEntryName != null && spotlightNavNames.contains(resourceEntryName)
+
+                if (isNavigationParent && (isSpotlightNavById || isSpotlightNavByName)) {
+                    view.hideViewCompletely()
+                val contentDescription = view.contentDescription?.toString()
+                val isSpotlightNavById = viewId in spotlightNavIds
+                val isSpotlightNavByName = resourceEntryName?.let {
+                    it.contains("spotlight", ignoreCase = true) &&
+                    (it.contains("nav", ignoreCase = true) || it.contains("tab", ignoreCase = true))
+                } == true
+                val isSpotlightNavByContentDescription = isNavigationParent &&
+                    contentDescription?.contains("spotlight", ignoreCase = true) == true
+
+                if (isSpotlightNavById || isSpotlightNavByName || isSpotlightNavByContentDescription) {
+                    view.hideViewCompletely()
+                val isSpotlightNavById = viewId in spotlightNavIds
+                val isSpotlightNavByName = resourceEntryName?.let {
+                    it.contains("spotlight", ignoreCase = true) &&
+                    (it.contains("hova_nav", ignoreCase = true) || it.contains("bottom_nav", ignoreCase = true))
+                } == true
+
+                if (isSpotlightNavById || isSpotlightNavByName) {
+                    view.hideViewCompletely()
+                    event.canceled = true
                     return@subscribe
                 }
             }
