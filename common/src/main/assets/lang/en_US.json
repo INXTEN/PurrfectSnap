@@ -1244,6 +1244,9 @@
                                 "description": "Choose which apps are terminated when long-pressing the chat button"
                             }
                         }
+                    "chat_hold_kill_actions": {
+                        "name": "PurrfectSnap Chat Hold Kill",
+                        "description": "Hold the chat/settings header button to kill selected app(s). Leave all options off to disable."
                     },
                     "spoof_snap_score": {
                         "name": "Spoof Snap Score",
@@ -1914,7 +1917,21 @@
                     },
                     "snapchat_plus": {
                         "name": "Snapchat Plus",
-                        "description": "Enables Snapchat Plus features\nSome Server-sided features may not work"
+                        "description": "Enables Snapchat Plus features\nSome Server-sided features may not work",
+                        "properties": {
+                            "snapchat_plus_custom_purchase_date": {
+                                "name": "Use Custom Purchase Date",
+                                "description": "Use your own Snapchat Plus purchase date override"
+                            },
+                            "snapchat_plus_purchase_date": {
+                                "name": "Purchase Date (YYYY-MM-DD)",
+                                "description": "Set a custom Snapchat Plus purchase date in YYYY-MM-DD format"
+                            }
+                        }
+                    },
+                    "snapchat_plus_purchase_date": {
+                        "name": "Snapchat Plus Purchase Date",
+                        "description": "Tap Save to choose a date from calendar (leave empty to use default)"
                     },
                     "media_upload_quality": {
                         "name": "Media Upload Quality",
@@ -2903,6 +2920,9 @@
                     "kill_snapchat": "Kill Snapchat",
                     "kill_purrfectsnap": "Kill PurrfectSnap"
                 }
+            "chat_hold_kill_actions": {
+                "kill_snapchat": "Kill Snapchat",
+                "kill_purrfectsnap": "Kill PurrfectSnap"
             },
             "path_format": {
                 "create_author_folder": "Create folder for each author",

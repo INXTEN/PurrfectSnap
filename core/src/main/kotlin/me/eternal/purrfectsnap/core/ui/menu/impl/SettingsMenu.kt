@@ -1,7 +1,10 @@
 package me.eternal.purrfectsnap.core.ui.menu.impl
 
+import android.app.ActivityManager
+import android.os.Process
 import android.view.View
 import android.widget.FrameLayout
+import me.eternal.purrfectsnap.common.Constants
 import me.eternal.purrfectsnap.common.ui.OverlayType
 import me.eternal.purrfectsnap.core.ui.menu.AbstractMenu
 import me.eternal.purrfectsnap.core.util.hook.HookStage
@@ -44,9 +47,30 @@ class SettingsMenu : AbstractMenu() {
                         }
 
                         shouldKillModule || shouldKillSnapchat
+                        handleChatHoldKillAction()
                     }
                 }
             }
         }
+    }
+
+    private fun handleChatHoldKillAction(): Boolean {
+        val selectedActions = context.config.userInterface.chatHoldKillActions.get()
+        if (selectedActions.isEmpty()) return false
+
+        context.mainActivity?.vibrateLongPress()
+
+        if (selectedActions.contains("kill_purrfectsnap")) {
+            runCatching {
+                val activityManager = context.androidContext.getSystemService(ActivityManager::class.java)
+                activityManager?.killBackgroundProcesses(Constants.MODULE_PACKAGE_NAME)
+            }
+        }
+
+        if (selectedActions.contains("kill_snapchat")) {
+            Process.killProcess(Process.myPid())
+        }
+
+        return true
     }
 }

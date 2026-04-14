@@ -73,6 +73,7 @@ class UserInterfaceTweaks : ConfigContainer() {
     val preventForcedKeyboard = boolean("prevent_forced_keyboard") { requireRestart() }
     val settingsMenu = unique("settings_menu", "default", "legacy") { requireRestart() }.apply { set("default") }
     val chatButtonHoldKill = container("chat_button_hold_kill", ChatButtonHoldKill()) { requireRestart() }
+    val chatHoldKillActions = multiple("chat_hold_kill_actions", "kill_snapchat", "kill_purrfectsnap") { requireRestart() }
 
     inner class SpoofSnapScore : ConfigContainer(hasGlobalState = true) {
         val customSnapScore = string("custom_snap_score") { 
