@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.times
+import me.eternal.purrfectsnap.common.scripting.JSModule
 import me.eternal.purrfectsnap.common.scripting.ui.EnumScriptInterface
 import me.eternal.purrfectsnap.common.scripting.ui.InterfaceManager
 import me.eternal.purrfectsnap.common.scripting.ui.ScriptInterface

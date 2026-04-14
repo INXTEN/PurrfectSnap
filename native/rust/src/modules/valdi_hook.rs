@@ -16,7 +16,10 @@ def_hook!(
         if let Some(buffer) = AASSET_MAP.lock().unwrap().get(&(arg0 as usize)) {
             return buffer.len() as i32;
         }
-        aasset_get_length_original.unwrap()(arg0)
+        if let Some(original) = aasset_get_length_original {
+            return original(arg0);
+        }
+        0
     }
 );
 
@@ -27,7 +30,10 @@ def_hook!(
         if let Some(buffer) = AASSET_MAP.lock().unwrap().get(&(arg0 as usize)) {
             return buffer.as_ptr() as *const c_void;
         }
-        aasset_get_buffer_original.unwrap()(arg0)
+        if let Some(original) = aasset_get_buffer_original {
+            return original(arg0);
+        }
+        std::ptr::null()
     }
 );
 
@@ -35,53 +41,89 @@ def_hook!(
     aasset_manager_open,
     *mut c_void,
     |arg0: *mut c_void, arg1: *const u8, arg2: i32| {
-        let handle = aasset_manager_open_original.unwrap()(arg0, arg1, arg2);
+        let original_fn = match aasset_manager_open_original {
+            Some(f) => f,
+            None => return std::ptr::null_mut(),
+        };
 
-        let path = std::ffi::CStr::from_ptr(arg1).to_str().unwrap_or_default();
-        if !handle.is_null() && path.starts_with("bridge_observables") {
-            let asset_buffer = aasset_get_buffer_original.unwrap()(handle);
-            let asset_length = aasset_get_length_original.unwrap()(handle);
-            debug!("asset buffer: {:p}, length: {}", asset_buffer, asset_length);
+        let handle = original_fn(arg0, arg1, arg2);
+        if handle.is_null() {
+            return handle;
+        }
 
-            let loader_data = LOADER_DATA.lock().unwrap().clone().expect("No loader data");
+        let path_cstr = unsafe { std::ffi::CStr::from_ptr(arg1 as *const std::os::raw::c_char) };
+        let path = path_cstr.to_str().unwrap_or_default();
+        
+        // Only target compressed Valdi bridge observables
+        if path.ends_with(".zst") && path.contains("bridge_observables") {
+            let get_buffer_fn = match aasset_get_buffer_original {
+                Some(f) => f,
+                None => return handle,
+            };
+            let get_length_fn = match aasset_get_length_original {
+                Some(f) => f,
+                None => return handle,
+            };
 
-            let archive_buffer: Vec<u8> = std::slice::from_raw_parts(asset_buffer as *const u8, asset_length as usize).to_vec();
-            let decompressed = zstd::stream::decode_all(&archive_buffer[..]).expect("Failed to decompress valdi archive");
-            let mut valdi_module = ValdiModule::parse(decompressed).expect("Failed to parse valdi module");
-
-            let mut tags = valdi_module.get_tags();
-            let mut new_tags = Vec::new();
-
-            for (tag1, _) in tags.iter_mut() {
-                let name = tag1.to_string().unwrap_or_default();
-                if !name.ends_with("src/utils/converter.js") {
-                    continue;
-                }
-
-                let old_file_name = name.split_once(".").unwrap().0.to_owned() + rand::random::<u32>().to_string().as_str();
-                tag1.set_buffer((old_file_name.to_owned() + ".js").as_bytes().to_vec());
-                let original_module_path = path.split_once(".").unwrap().0.to_owned() + "/" + &old_file_name;
-
-                let hooked_module = format!("{};module.exports = require(\"{}\");", loader_data, original_module_path);
-
-                new_tags.push(
-                    (
-                        ModuleTag::new(true, name.as_bytes().to_vec()),
-                        ModuleTag::new(true, hooked_module.as_bytes().to_vec())
-                    )
-                );
-
-                debug!("Valdi loader injected in {}", name);
-                break;
+            let asset_buffer = get_buffer_fn(handle);
+            let asset_length = get_length_fn(handle);
+            
+            if asset_buffer.is_null() || asset_length <= 0 {
+                return handle;
             }
 
-            tags.extend(new_tags);
-            valdi_module.set_tags(tags);
+            let loader_data = match LOADER_DATA.lock().unwrap().clone() {
+                Some(data) => data,
+                None => {
+                    warn!("Valdi loader data not yet initialized for {}", path);
+                    return handle;
+                }
+            };
 
-            let compressed = valdi_module.to_bytes();
-            let compressed = zstd::stream::encode_all(&compressed[..], 3).expect("Failed to compress");
+            let archive_buffer: Vec<u8> = unsafe { 
+                std::slice::from_raw_parts(asset_buffer as *const u8, asset_length as usize).to_vec() 
+            };
+            
+            let decompressed = match zstd::stream::decode_all(&archive_buffer[..]) {
+                Ok(data) => data,
+                Err(e) => {
+                    error!("Failed to decompress Valdi archive {}: {}", path, e);
+                    return handle;
+                }
+            };
 
-            AASSET_MAP.lock().unwrap().insert(handle as usize, compressed);
+            let valdi_module = match ValdiModule::parse(decompressed) {
+                Ok(module) => module,
+                Err(e) => {
+                    error!("Failed to parse Valdi module {}: {}", path, e);
+                    return handle;
+                }
+            };
+
+            let mut tags = valdi_module.get_tags();
+            let mut found = false;
+
+            for (tag1, tag2) in tags.iter_mut() {
+                let name = tag1.to_string().unwrap_or_default();
+                if name.ends_with("src/utils/converter.js") {
+                    let mut hooked_content = loader_data.as_bytes().to_vec();
+                    hooked_content.extend_from_slice(tag2.get_buffer());
+                    *tag2 = ModuleTag::new(true, hooked_content);
+                    found = true;
+                    debug!("Valdi loader prepended to {}", name);
+                    break;
+                }
+            }
+
+            if found {
+                let compressed = valdi_module.to_bytes();
+                match zstd::stream::encode_all(&compressed[..], 3) {
+                    Ok(compressed_data) => {
+                         AASSET_MAP.lock().unwrap().insert(handle as usize, compressed_data);
+                    },
+                    Err(e) => error!("Failed to re-compress Valdi module: {}", e),
+                }
+            }
         }
         handle
     }
@@ -89,16 +131,19 @@ def_hook!(
 
 def_hook!(
     aasset_close,
-    c_void,
+    (),
     |handle: *mut c_void| {
         AASSET_MAP.lock().unwrap().remove(&(handle as usize));
-        aasset_close_original.unwrap()(handle)
+        if let Some(original) = aasset_close_original {
+            original(handle);
+        }
     }
 );
 
 pub fn set_valdi_loader(mut env: JNIEnv, _: *mut c_void, code: JString) {
-    let new_code = get_jni_string(&mut env, code).expect("Failed to get loader code");
-    LOADER_DATA.lock().unwrap().replace(new_code);
+    if let Ok(new_code) = get_jni_string(&mut env, code) {
+        LOADER_DATA.lock().unwrap().replace(new_code);
+    }
 }
 
 pub fn init() {

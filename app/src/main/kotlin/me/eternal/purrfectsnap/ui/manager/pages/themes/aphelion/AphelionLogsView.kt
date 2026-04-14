@@ -2,27 +2,31 @@ package me.eternal.purrfectsnap.ui.manager.pages.themes.aphelion
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavBackStackEntry
 import me.eternal.purrfectsnap.ui.manager.components.FloatingTopBar
 import me.eternal.purrfectsnap.ui.manager.pages.home.HomeLogs
 import me.eternal.purrfectsnap.ui.manager.theme.PurrfectPalette
+import me.eternal.purrfectsnap.core.ui.PurrfectGlassCard
+import me.eternal.purrfectsnap.core.ui.PurrfectOverlayTheme
 import me.eternal.purrfectsnap.ui.util.headerHeightTracker
 import me.eternal.purrfectsnap.ui.util.Motion
 import kotlinx.coroutines.launch
@@ -37,6 +41,7 @@ fun HomeLogs.AphelionLogsScreen(nav: NavBackStackEntry) {
     var logReader by remember { mutableStateOf<me.eternal.purrfectsnap.LogReader?>(null) }
     val visibleLogs = remember { mutableStateListOf<me.eternal.purrfectsnap.LogLine>() }
     var isRefreshing by remember { mutableStateOf(false) }
+    var showFilterDialog by remember { mutableStateOf(false) }
 
     fun refreshLogs() {
         isRefreshing = true
@@ -67,6 +72,67 @@ fun HomeLogs.AphelionLogsScreen(nav: NavBackStackEntry) {
                 }
             }
         }
+    }
+
+    @Composable
+    fun LogFilterDialog() {
+        Dialog(onDismissRequest = { showFilterDialog = false }) {
+            PurrfectOverlayTheme {
+                PurrfectGlassCard(title = translation["filter_logs_title"] ?: "Filter Log Categories", modifier = Modifier.fillMaxWidth()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        HomeLogs.LogCategory.entries.forEach { category ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable {
+                                        enabledCategories.keys.forEach { enabledCategories[it] = false }
+                                        enabledCategories[category] = true
+                                        refreshLogs()
+                                    }
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Checkbox(
+                                    checked = enabledCategories[category] == true,
+                                    onCheckedChange = { checked ->
+                                        enabledCategories[category] = checked
+                                        refreshLogs()
+                                    },
+                                    colors = CheckboxDefaults.colors(
+                                        checkedColor = PurrfectPalette.glowPrimary,
+                                        uncheckedColor = Color.White.copy(alpha = 0.4f),
+                                        checkmarkColor = Color.White
+                                    )
+                                )
+                                Text(
+                                    text = translation[category.translationKey] ?: category.name,
+                                    color = Color.White,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                            Button(
+                                onClick = { showFilterDialog = false },
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PurrfectPalette.glowPrimary)
+                            ) {
+                                Text(translation["filter_logs_done_button"] ?: "Done")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showFilterDialog) {
+        LogFilterDialog()
     }
 
     LaunchedEffect(externalRefreshTick.value) {
@@ -131,6 +197,9 @@ fun HomeLogs.AphelionLogsScreen(nav: NavBackStackEntry) {
                         strokeWidth = 2.dp,
                         color = Color.White
                     )
+                }
+                IconButton(onClick = { showFilterDialog = true }) {
+                    Icon(Icons.Filled.FilterList, contentDescription = "Filter Logs", tint = PurrfectPalette.glowSecondary)
                 }
                 IconButton(onClick = { refreshLogs() }) {
                     Icon(Icons.Filled.Refresh, contentDescription = "Refresh", tint = Color.White)

@@ -1121,6 +1121,8 @@ object LegacyTheme : ThemeContract {
         val visibleLogs = remember { mutableStateListOf<LogLine>() }
         val mainExecutor = remember { context.androidContext.mainExecutor }
         var isRefreshing by remember { mutableStateOf(false) }
+        var showFilterDialog by remember { mutableStateOf(false) }
+
         fun refreshLogs() {
             coroutineScope.launch {
                 val readerResult = withContext(Dispatchers.IO) {
@@ -1154,6 +1156,71 @@ object LegacyTheme : ThemeContract {
                 isRefreshing = false
             }
         }
+
+        @Composable
+        fun LogFilterDialog() {
+            androidx.compose.ui.window.Dialog(onDismissRequest = { showFilterDialog = false }) {
+                me.eternal.purrfectsnap.core.ui.PurrfectOverlayTheme {
+                    me.eternal.purrfectsnap.core.ui.PurrfectGlassCard(title = translation["filter_logs_title"] ?: "Filter Log Categories", modifier = Modifier.fillMaxWidth()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            HomeLogs.LogCategory.entries.forEach { category ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable {
+                                            // Solo Focus Logic: Tap the name to filter only this category
+                                            enabledCategories.keys.forEach { enabledCategories[it] = false }
+                                            enabledCategories[category] = true
+                                            isRefreshing = true
+                                            refreshLogs()
+                                        }
+                                        .padding(vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Checkbox(
+                                        checked = enabledCategories[category] == true,
+                                        onCheckedChange = { checked ->
+                                            enabledCategories[category] = checked
+                                            isRefreshing = true
+                                            refreshLogs()
+                                        },
+                                        colors = CheckboxDefaults.colors(
+                                            checkedColor = PurrfectPalette.glowPrimary,
+                                            uncheckedColor = Color.White.copy(alpha = 0.4f),
+                                            checkmarkColor = Color.White
+                                        )
+                                    )
+                                    Text(
+                                        text = translation[category.translationKey] ?: category.name,
+                                        color = Color.White,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                Button(
+                                    onClick = { showFilterDialog = false },
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = PurrfectPalette.glowPrimary)
+                                ) {
+                                    Text(translation["filter_logs_done_button"] ?: "Done")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (showFilterDialog) {
+            LogFilterDialog()
+        }
+
         LaunchedEffect(externalRefreshTick.intValue) {
             if (externalRefreshTick.intValue > 0) {
                 isRefreshing = true
@@ -1181,6 +1248,7 @@ object LegacyTheme : ThemeContract {
                         isRefreshing = true
                         refreshLogs()
                     },
+                    onFilter = { showFilterDialog = true },
                     onExport = { exportLogs() },
                     onClear = { clearLogsAndReload() }
                 )
