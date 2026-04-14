@@ -118,7 +118,7 @@ class Notifications : Feature("Notifications") {
             val intent = SnapWidgetBroadcastReceiverHelper.create(remoteAction) {
                 putExtra("conversation_id", conversationId)
                 putExtra("notification_id", notificationData.id)
-                putExtra("client_message_id", message.messageDescriptor!!.messageId!!)
+                putExtra("client_message_id", message.messageDescriptor!!.messageId!!.toLong())
             }
 
             val action = Notification.Action.Builder(null, title, PendingIntent.getBroadcast(
@@ -160,7 +160,9 @@ class Notifications : Feature("Notifications") {
         context.event.subscribe(SnapWidgetBroadcastReceiveEvent::class) { event ->
             val intent = event.intent ?: return@subscribe
             val conversationId = intent.getStringExtra("conversation_id") ?: return@subscribe
-            val clientMessageId = intent.getLongExtra("client_message_id", -1)
+            val clientMessageId = intent.getLongExtra("client_message_id", -1L).takeIf { it != -1L }
+                ?: intent.getStringExtra("client_message_id")?.toLongOrNull()
+                ?: intent.getIntExtra("client_message_id", -1).toLong()
             val notificationId = intent.getIntExtra("notification_id", -1)
 
             val updateNotification: (Int, (Notification) -> Unit) -> Unit = { id, notificationBuilder ->
@@ -209,10 +211,15 @@ class Notifications : Feature("Notifications") {
                     })
                 }
                 ACTION_DOWNLOAD -> {
-                    runCatching {
-                        context.feature(MediaDownloader::class).downloadMessageId(clientMessageId, isPreview = false)
-                    }.onFailure {
-                        context.longToast(it)
+                    context.shortToast(context.translation.getCategory("download_processor")["download_started_toast"] ?: "Downloading...")
+                    context.coroutineScope.launch(coroutineDispatcher) {
+                        runCatching {
+                            if (clientMessageId <= 0) throw Exception("Message not found or expired in database.")
+                            context.feature(MediaDownloader::class).downloadMessageId(clientMessageId, isPreview = false)
+                        }.onFailure {
+                            val msg = if (it.message?.contains("not found", true) == true) "Message expired or already viewed." else it.message
+                            context.longToast("Download failed: $msg")
+                        }
                     }
                 }
                 ACTION_MARK_AS_READ -> {

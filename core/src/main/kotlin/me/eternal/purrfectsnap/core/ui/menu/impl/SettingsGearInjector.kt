@@ -101,6 +101,7 @@ class SettingsGearInjector : AbstractMenu() {
         if (selectedActions.isEmpty()) return false
 
         context.androidContext.vibrateLongPress()
+        context.mainActivity?.vibrateLongPress()
 
         if (selectedActions.contains("kill_purrfectsnap")) {
             runCatching {

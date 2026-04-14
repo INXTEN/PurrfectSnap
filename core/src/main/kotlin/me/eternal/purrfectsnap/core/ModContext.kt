@@ -164,10 +164,10 @@ class ModContext(
                 disableMetrics = config.global.disableMetrics.get(),
                 valdiHooks = config.experimental.nativeHooks.valdiHooks.globalState == true &&
                     Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q,
-                customEmojiFontPath = getCustomEmojiFontPath(this)
-            )
-        )
-    }
+                customEmojiFontPath = getCustomEmojiFontPath(this),
+                debugFontRedirect = config.experimental.nativeHooks.debugFontRedirect.get()
+                )
+                )    }
 
     fun getConfigLocale(): String {
         return _config.locale
