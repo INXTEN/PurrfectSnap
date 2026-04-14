@@ -10,6 +10,7 @@ import me.eternal.purrfectsnap.core.ui.menu.AbstractMenu
 import me.eternal.purrfectsnap.core.util.hook.HookStage
 import me.eternal.purrfectsnap.core.util.hook.hook
 import me.eternal.purrfectsnap.core.util.ktx.getId
+import me.eternal.purrfectsnap.core.util.ktx.vibrateLongPress
 
 class SettingsMenu : AbstractMenu() {
     private val hovaHeaderSearchIconId by lazy {
@@ -37,6 +38,7 @@ class SettingsMenu : AbstractMenu() {
         val selectedActions = context.config.userInterface.chatHoldKillActions.get()
         if (selectedActions.isEmpty()) return false
 
+        context.androidContext.vibrateLongPress()
         context.mainActivity?.vibrateLongPress()
 
         if (selectedActions.contains("kill_purrfectsnap")) {

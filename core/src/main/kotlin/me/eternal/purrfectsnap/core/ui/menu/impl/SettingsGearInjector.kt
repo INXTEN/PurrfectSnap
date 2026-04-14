@@ -12,6 +12,7 @@ import me.eternal.purrfectsnap.core.event.events.impl.AddViewEvent
 import me.eternal.purrfectsnap.core.ui.menu.AbstractMenu
 import me.eternal.purrfectsnap.core.util.ktx.getDrawable
 import me.eternal.purrfectsnap.core.util.ktx.getStyledAttributes
+import me.eternal.purrfectsnap.core.util.ktx.vibrateLongPress
 
 class SettingsGearInjector : AbstractMenu() {
     private val hovaHeaderAddFriendIconId by lazy {
@@ -99,6 +100,7 @@ class SettingsGearInjector : AbstractMenu() {
         val selectedActions = context.config.userInterface.chatHoldKillActions.get()
         if (selectedActions.isEmpty()) return false
 
+        context.androidContext.vibrateLongPress()
         context.mainActivity?.vibrateLongPress()
 
         if (selectedActions.contains("kill_purrfectsnap")) {
