@@ -1900,7 +1900,17 @@
                     },
                     "snapchat_plus": {
                         "name": "Snapchat Plus",
-                        "description": "Enables Snapchat Plus features\nSome Server-sided features may not work"
+                        "description": "Enables Snapchat Plus features\nSome Server-sided features may not work",
+                        "properties": {
+                            "snapchat_plus_custom_purchase_date": {
+                                "name": "Use Custom Purchase Date",
+                                "description": "Use your own Snapchat Plus purchase date override"
+                            },
+                            "snapchat_plus_purchase_date": {
+                                "name": "Purchase Date (YYYY-MM-DD)",
+                                "description": "Set a custom Snapchat Plus purchase date in YYYY-MM-DD format"
+                            }
+                        }
                     },
                     "media_upload_quality": {
                         "name": "Media Upload Quality",
