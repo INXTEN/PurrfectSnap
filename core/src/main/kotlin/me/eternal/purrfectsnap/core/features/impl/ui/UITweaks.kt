@@ -262,12 +262,12 @@ class UITweaks : Feature("UITweaks") {
             if (viewId == unreadHintButton && hiddenElements.contains("hide_unread_chat_hint")) {
                 event.canceled = true
             }
-        }
+        } // end AddViewEvent subscription
     }
 
     override fun init() {
         onNextActivityCreate {
             onActivityCreate()
         }
-    }
-}
+    } // end init
+} // end UITweaks
