@@ -73,6 +73,7 @@ class UITweaks : Feature("UITweaks") {
         val blockAds by context.config.global.blockAds
         val hiddenElements by context.config.userInterface.hideUiComponents
         val hideStorySuggestions by context.config.userInterface.hideStorySuggestions
+        val disableSpotlight by context.config.userInterface.disableSpotlight
         val isImmersiveCamera by context.config.camera.immersiveCameraPreview
 
         val displayMetrics = context.resources.displayMetrics
@@ -80,6 +81,18 @@ class UITweaks : Feature("UITweaks") {
 
         val chatNoteRecordButton = getId("chat_note_record_button", "id")
         val unreadHintButton = getId("unread_hint_button", "id")
+        val spotlightNavIds = listOf(
+            getId("hova_nav_spotlight", "id"),
+            getId("ngs_hova_nav_spotlight", "id"),
+            getId("hova_nav_spotlight_tab", "id"),
+            getId("hova_nav_spotlight_button", "id")
+        ).filter { it != 0 }.toSet()
+        val spotlightNavNames = setOf(
+            "hova_nav_spotlight",
+            "ngs_hova_nav_spotlight",
+            "hova_nav_spotlight_tab",
+            "hova_nav_spotlight_button"
+        )
 
         Resources::class.java.methods.first { it.name == "getDimensionPixelSize"}.hook(
             HookStage.AFTER,
@@ -116,6 +129,20 @@ class UITweaks : Feature("UITweaks") {
 
             if (blockAds && viewId == getId("df_promoted_story", "id")) {
                 hideStorySection(event)
+            }
+
+            if (disableSpotlight) {
+                val resourceEntryName = runCatching { context.resources.getResourceEntryName(viewId) }.getOrNull()
+                val parentClassName = event.parent.javaClass.name
+                val isNavigationParent = parentClassName.contains("hova", ignoreCase = true) &&
+                    (parentClassName.contains("nav", ignoreCase = true) || parentClassName.contains("tab", ignoreCase = true))
+                val isSpotlightNavById = viewId in spotlightNavIds
+                val isSpotlightNavByName = resourceEntryName != null && spotlightNavNames.contains(resourceEntryName)
+
+                if (isNavigationParent && (isSpotlightNavById || isSpotlightNavByName)) {
+                    view.hideViewCompletely()
+                    return@subscribe
+                }
             }
 
             if (isImmersiveCamera) {
