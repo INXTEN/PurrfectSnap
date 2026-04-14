@@ -1,5 +1,6 @@
 package me.eternal.purrfectsnap.core
 
+import me.eternal.purrfectsnap.common.scripting.JSModule
 import android.app.Activity
 import android.content.Context
 import android.content.Intent

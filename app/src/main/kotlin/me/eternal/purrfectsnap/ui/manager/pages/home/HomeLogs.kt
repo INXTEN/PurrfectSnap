@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.KeyboardDoubleArrowDown
 import androidx.compose.material.icons.filled.KeyboardDoubleArrowUp
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Report
@@ -170,6 +171,7 @@ class HomeLogs : Routes.Route() {
     internal fun LogsFloatingBar(
         isRefreshing: Boolean,
         onRefresh: () -> Unit,
+        onFilter: () -> Unit,
         onExport: () -> Unit,
         onClear: () -> Unit
     ) {
@@ -222,6 +224,20 @@ class HomeLogs : Routes.Route() {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    if (isRefreshing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = Color.White
+                        )
+                    }
+                    IconButton(onClick = onFilter) {
+                        Icon(
+                            imageVector = Icons.Filled.FilterList,
+                            contentDescription = "Filter Logs",
+                            tint = PurrfectPalette.glowSecondary
+                        )
+                    }
                     IconButton(onClick = onRefresh, enabled = !isRefreshing) {
                         Icon(
                             imageVector = Icons.Filled.Refresh,
@@ -457,7 +473,31 @@ class HomeLogs : Routes.Route() {
         LogLevel.WARN -> Icons.Outlined.Warning
     }
 
+    enum class LogCategory(val translationKey: String, val tags: List<String>) {
+        CORE("log_category_core", listOf("core", "hook", "module", "mappings")),
+        AUTO_OPEN("log_category_auto_open", listOf("autoopenengine", "autoopen")),
+        MEDIA("log_category_media", listOf("downloader", "ffmpeg", "media", "video")),
+        BRIDGE("log_category_bridge", listOf("messagingbridge", "bridge", "ipc")),
+        SYSTEM("log_category_system", listOf("systemguard", "thermal", "battery", "wakelock")),
+        TRACKER("log_category_tracker", listOf("tracker", "friendtracker"))
+    }
+
+    val enabledCategories = mutableStateMapOf<LogCategory, Boolean>().apply {
+        LogCategory.entries.forEach { put(it, true) }
+    }
+
+    internal fun getCategoryForLog(line: LogLine): LogCategory? {
+        val tag = line.tag.lowercase()
+        val message = line.message.lowercase()
+        return LogCategory.entries.find { category ->
+            category.tags.any { tag.contains(it) || message.contains("[$it]") }
+        }
+    }
+
     internal fun shouldHideLog(line: LogLine): Boolean {
+        val category = getCategoryForLog(line)
+        if (category != null && enabledCategories[category] == false) return true
+
         val message = line.message.lowercase()
         val tag = line.tag.lowercase()
         return message.startsWith("blocked ep") ||

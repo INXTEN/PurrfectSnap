@@ -8,12 +8,17 @@ pub fn native_config() -> NativeConfig {
     NATIVE_CONFIG.lock().unwrap().as_ref().expect("NativeConfig not loaded").clone()
 }
 
+/// Native configuration structure mirrored from 'NativeConfig.kt'.
+/// 
+/// CRITICAL: Fields must maintain 1:1 parity with the Kotlin implementation.
+/// Mismatches in field names, types, or order will result in a JNI SIGABRT.
 #[derive(Debug, Clone)]
 pub(crate) struct NativeConfig {
     pub disable_bitmoji: bool,
     pub disable_metrics: bool,
     pub valdi_hooks: bool,
     pub custom_emoji_font_path: Option<String>,
+    pub debug_font_redirect: bool,
 }
 
 impl NativeConfig {
@@ -41,6 +46,7 @@ impl NativeConfig {
             disable_metrics: get_boolean!("disableMetrics"),
             valdi_hooks: get_boolean!("valdiHooks"),
             custom_emoji_font_path: get_string!("customEmojiFontPath"),
+            debug_font_redirect: get_boolean!("debugFontRedirect"),
         })
     }
 }

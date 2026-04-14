@@ -43,6 +43,7 @@ import me.eternal.purrfectsnap.common.data.ContentType
 import me.eternal.purrfectsnap.common.data.FriendLinkType
 import me.eternal.purrfectsnap.common.database.impl.ConversationMessage
 import me.eternal.purrfectsnap.common.database.impl.FriendInfo
+import me.eternal.purrfectsnap.common.scripting.JSModule
 import me.eternal.purrfectsnap.common.scripting.ui.EnumScriptInterface
 import me.eternal.purrfectsnap.common.scripting.ui.InterfaceManager
 import me.eternal.purrfectsnap.common.scripting.ui.ScriptInterface

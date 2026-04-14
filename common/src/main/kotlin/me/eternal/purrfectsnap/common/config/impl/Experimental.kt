@@ -35,6 +35,7 @@ class Experimental : ConfigContainer() {
     class NativeHooks : ConfigContainer() {
         val valdiHooks = container("composer_hooks", ValdiHooksConfig()) { requireRestart() }
         val disableBitmoji = boolean("disable_bitmoji")
+        val debugFontRedirect = boolean("debug_font_redirect") { addFlags(ConfigFlag.HIDDEN) }
         val customEmojiFont = string("custom_emoji_font") {
             requireRestart()
             addFlags(ConfigFlag.USER_IMPORT)
