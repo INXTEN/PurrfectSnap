@@ -127,6 +127,20 @@ class UITweaks : Feature("UITweaks") {
 
             if (disableSpotlight) {
                 val resourceEntryName = runCatching { context.resources.getResourceEntryName(viewId) }.getOrNull()
+                val parentClassName = event.parent.javaClass.name
+                val isNavigationParent = parentClassName.contains("hova", ignoreCase = true) &&
+                    (parentClassName.contains("nav", ignoreCase = true) || parentClassName.contains("tab", ignoreCase = true))
+                val contentDescription = view.contentDescription?.toString()
+                val isSpotlightNavById = viewId in spotlightNavIds
+                val isSpotlightNavByName = resourceEntryName?.let {
+                    it.contains("spotlight", ignoreCase = true) &&
+                    (it.contains("nav", ignoreCase = true) || it.contains("tab", ignoreCase = true))
+                } == true
+                val isSpotlightNavByContentDescription = isNavigationParent &&
+                    contentDescription?.contains("spotlight", ignoreCase = true) == true
+
+                if (isSpotlightNavById || isSpotlightNavByName || isSpotlightNavByContentDescription) {
+                    view.hideViewCompletely()
                 val isSpotlightNavById = viewId in spotlightNavIds
                 val isSpotlightNavByName = resourceEntryName?.let {
                     it.contains("spotlight", ignoreCase = true) &&
