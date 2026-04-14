@@ -836,6 +836,10 @@ class FeaturesRootSection : Routes.Route() {
                         ) {
                             Text(translation["button.save"] ?: "Set")
                         }
+                        ValueGlowChip(
+                            text = propertyValue.get().toString(),
+                            onClick = click
+                        )
                     } else {
                         IconButton(onClick = click) {
                             Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null)

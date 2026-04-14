@@ -52,6 +52,13 @@ class Global : ConfigContainer() {
         requireRestart()
         inputCheck = {
             it.isBlank() || runCatching { LocalDate.parse(it, DateTimeFormatter.ISO_LOCAL_DATE) }.isSuccess
+    val snapchatPlusCustomPurchaseDate = boolean("snapchat_plus_custom_purchase_date") { requireRestart() }
+    val snapchatPlusPurchaseDate = string("snapchat_plus_purchase_date", "2026-04-14") {
+        requireRestart()
+        inputCheck = {
+            runCatching {
+                LocalDate.parse(it, DateTimeFormatter.ISO_LOCAL_DATE)
+            }.isSuccess
         }
     }
     val mediaUploadQualityConfig = container("media_upload_quality", MediaUploadQualityConfig())

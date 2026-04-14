@@ -48,6 +48,10 @@ class SnapchatPlus: Feature("SnapchatPlus") {
                             runCatching {
                                 LocalDate
                                     .parse(customPurchaseDate, DateTimeFormatter.ISO_LOCAL_DATE)
+                        val customPurchaseDateMillis = if (context.config.global.snapchatPlusCustomPurchaseDate.get()) {
+                            runCatching {
+                                LocalDate
+                                    .parse(context.config.global.snapchatPlusPurchaseDate.get(), DateTimeFormatter.ISO_LOCAL_DATE)
                                     .atStartOfDay(ZoneId.systemDefault())
                                     .toInstant()
                                     .toEpochMilli()
