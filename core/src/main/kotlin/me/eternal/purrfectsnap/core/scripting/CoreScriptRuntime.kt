@@ -1,5 +1,6 @@
 package me.eternal.purrfectsnap.core.scripting
 
+import me.eternal.purrfectsnap.common.scripting.JSModule
 import me.eternal.purrfectsnap.bridge.scripting.AutoReloadListener
 import me.eternal.purrfectsnap.common.logger.AbstractLogger
 import me.eternal.purrfectsnap.common.scripting.ScriptRuntime
@@ -7,6 +8,11 @@ import me.eternal.purrfectsnap.common.scripting.bindings.BindingSide
 import me.eternal.purrfectsnap.core.ModContext
 import me.eternal.purrfectsnap.core.scripting.impl.*
 
+/**
+ * Core-side implementation of the [ScriptRuntime].
+ * Manages script lifecycle synchronized with the JNI bridge connection state
+ * to prevent race conditions during early-init hooks.
+ */
 class CoreScriptRuntime(
     private val modContext: ModContext,
     logger: AbstractLogger,
@@ -15,9 +21,18 @@ class CoreScriptRuntime(
     androidContext = modContext.androidContext,
     logger = logger
 ) {
-    // we assume that the bridge is reloaded the next time we connect to it
+    // Indicates if the bridge has been reloaded at least once in this session
     private var isBridgeReloaded = false
 
+    /**
+     * Bridge connection status. Use [isBridgeConnected] to guard JNI-dependent operations.
+     */
+    @Volatile
+    private var isBridgeConnected = false
+
+    /**
+     * Initializes the scripting environment and establishes bridge-aware lifecycle observers.
+     */
     fun init() {
         buildModuleObject = { module ->
             putConst("currentSide", this, BindingSide.CORE.key)
@@ -32,11 +47,14 @@ class CoreScriptRuntime(
 
         modContext.bridgeClient.addOnConnectedCallback(initNow = true) {
             modContext.bridgeClient.getScriptingInterface()?.let { scriptingInterface ->
+                logger.info("JNI Bridge established. Initializing scripts...")
                 scripting = scriptingInterface
+                isBridgeConnected = true
 
                 if (!isBridgeReloaded) {
                     scriptingInterface.enabledScripts.forEach { path ->
                         runCatching {
+                            logger.verbose("Loading script: $path")
                             load(path, scriptingInterface.getScriptContent(path))
                         }.onFailure {
                             logger.error("Failed to load script $path", it)
@@ -46,6 +64,7 @@ class CoreScriptRuntime(
 
                 scriptingInterface.registerAutoReloadListener(object : AutoReloadListener.Stub() {
                     override fun restartApp() {
+                        logger.info("Script change detected. Soft-restarting app...")
                         modContext.softRestartApp()
                     }
                 })
@@ -57,7 +76,18 @@ class CoreScriptRuntime(
                 if (!isBridgeReloaded) {
                     isBridgeReloaded = true
                 }
+            } ?: run {
+                isBridgeConnected = false
+                logger.error("JNI Bridge callback triggered but interface is null.")
             }
         }
+    }
+
+    /**
+     * Safely iterates over loaded modules only when the JNI bridge is confirmed connected.
+     */
+    override fun eachModule(f: JSModule.() -> Unit) {
+        if (!isBridgeConnected) return
+        super.eachModule(f)
     }
 }

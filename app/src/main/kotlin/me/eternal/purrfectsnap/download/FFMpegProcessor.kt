@@ -90,6 +90,8 @@ class FFMpegProcessor(
     )
 
 
+    private val sharedExecutor = Executors.newSingleThreadExecutor()
+
     private suspend fun newFFMpegTask(globalArguments: ArgumentList, inputArguments: ArgumentList, outputArguments: ArgumentList) = suspendCancellableCoroutine<FFmpegSession> {
         val stringBuilder = StringBuilder()
         arrayOf(globalArguments, inputArguments, outputArguments).forEach { argumentList ->
@@ -127,7 +129,7 @@ class FFMpegProcessor(
                     Level.AV_LOG_VERBOSE -> LogLevel.VERBOSE
                     else -> return@logFunction
                 }, log.message)
-            }, { onStatistics(it) }, Executors.newSingleThreadExecutor())
+            }, { onStatistics(it) }, sharedExecutor)
     }
 
     suspend fun execute(args: Request) {
@@ -162,7 +164,7 @@ class FFMpegProcessor(
             }
             Action.MERGE_OVERLAY -> {
                 inputArguments += "-i" to args.overlay!!.absolutePath
-                outputArguments += "-filter_complex" to "\"[0]scale2ref[img][vid];[img]setsar=1[img];[vid]nullsink;[img][1]overlay=(W-w)/2:(H-h)/2,scale=2*trunc(iw*sar/2):2*trunc(ih/2)\""
+                outputArguments += "-filter_complex" to "\"[1:v][0:v]scale2ref=w=iw:h=ih[ovrl][main];[main][ovrl]overlay=(W-w)/2:(H-h)/2,scale=2*trunc(iw/2):2*trunc(ih/2)\""
             }
             Action.CONVERSION -> {
                 if (ffmpegOptions.customAudioCodec.isEmpty()) {
@@ -187,45 +189,47 @@ class FFMpegProcessor(
                     }.getOrNull()?.let { file to it }
                 }
 
-                val (maxWidth, maxHeight) = filesInfo.maxByOrNull { (_, r) ->
-                    r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
-                }?.let { (_, r) ->
-                    r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() to
-                    r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull()
-                } ?: throw Exception("Failed to get video size")
+                try {
+                    val (maxWidth, maxHeight) = filesInfo.maxByOrNull { (_, r) ->
+                        r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
+                    }?.let { (_, r) ->
+                        r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() to
+                        r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull()
+                    } ?: throw Exception("Failed to get video size")
 
-                val filterFirstPart = StringBuilder()
-                val filterSecondPart = StringBuilder()
-                var containsNoSound = false
+                    val filterFirstPart = StringBuilder()
+                    val filterSecondPart = StringBuilder()
+                    var containsNoSound = false
 
-                filesInfo.forEachIndexed { index, (file, retriever) ->
-                    filterFirstPart.append("[$index:v]scale=$maxWidth:$maxHeight,setsar=1[v$index];")
-                    if (retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO) == "yes") {
-                        filterSecondPart.append("[v$index][$index:a]")
-                    } else {
-                        containsNoSound = true
-                        filterSecondPart.append("[v$index][${filesInfo.size}]")
+                    filesInfo.forEachIndexed { index, (file, retriever) ->
+                        filterFirstPart.append("[$index:v]scale=$maxWidth:$maxHeight,setsar=1[v$index];")
+                        if (retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO) == "yes") {
+                            filterSecondPart.append("[v$index][$index:a]")
+                        } else {
+                            containsNoSound = true
+                            filterSecondPart.append("[v$index][${filesInfo.size}]")
+                        }
+                        inputArguments += "-i" to file
                     }
-                    inputArguments += "-i" to file
+
+                    if (containsNoSound) {
+                        inputArguments += "-f" to "lavfi"
+                        inputArguments += "-t" to "0.1"
+                        inputArguments += "-i" to "anullsrc=channel_layout=stereo:sample_rate=44100"
+                    }
+
+                    if (outputArguments["-c:a"] == "copy") {
+                        outputArguments -= "-c:a"
+                    }
+
+                    outputArguments += "-fps_mode" to "vfr"
+
+                    outputArguments += "-filter_complex" to "\"$filterFirstPart ${filterSecondPart}concat=n=${filesInfo.size}:v=1:a=1[vout][aout]\""
+                    outputArguments += "-map" to "\"[aout]\""
+                    outputArguments += "-map" to "\"[vout]\""
+                } finally {
+                    filesInfo.forEach { it.second.close() }
                 }
-
-                if (containsNoSound) {
-                    inputArguments += "-f" to "lavfi"
-                    inputArguments += "-t" to "0.1"
-                    inputArguments += "-i" to "anullsrc=channel_layout=stereo:sample_rate=44100"
-                }
-
-                if (outputArguments["-c:a"] == "copy") {
-                    outputArguments -= "-c:a"
-                }
-
-                outputArguments += "-fps_mode" to "vfr"
-
-                outputArguments += "-filter_complex" to "\"$filterFirstPart ${filterSecondPart}concat=n=${filesInfo.size}:v=1:a=1[vout][aout]\""
-                outputArguments += "-map" to "\"[aout]\""
-                outputArguments += "-map" to "\"[vout]\""
-
-                filesInfo.forEach { it.second.close() }
             }
             Action.DOWNLOAD_AUDIO_STREAM -> {
                 outputArguments.clear()
