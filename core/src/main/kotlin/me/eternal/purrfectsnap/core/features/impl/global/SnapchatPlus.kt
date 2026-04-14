@@ -43,6 +43,11 @@ class SnapchatPlus: Feature("SnapchatPlus") {
                         set(statusField.getAsString()!!, 2)
 
                         val fallbackOriginalSubscriptionTime = System.currentTimeMillis() - 7776000000L
+                        val customPurchaseDate = context.config.global.snapchatPlusPurchaseDate.get().trim()
+                        val customPurchaseDateMillis = if (customPurchaseDate.isNotEmpty()) {
+                            runCatching {
+                                LocalDate
+                                    .parse(customPurchaseDate, DateTimeFormatter.ISO_LOCAL_DATE)
                         val customPurchaseDateMillis = if (context.config.global.snapchatPlusCustomPurchaseDate.get()) {
                             runCatching {
                                 LocalDate

@@ -827,6 +827,15 @@ class FeaturesRootSection : Routes.Route() {
                             )
                         }
                     } else if (isSnapchatPlusPurchaseDateProperty) {
+                        Button(
+                            onClick = click,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PurrfectPalette.glowPrimary.copy(alpha = 0.28f),
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Text(translation["button.save"] ?: "Set")
+                        }
                         ValueGlowChip(
                             text = propertyValue.get().toString(),
                             onClick = click
