@@ -73,6 +73,7 @@ class UITweaks : Feature("UITweaks") {
         val blockAds by context.config.global.blockAds
         val hiddenElements by context.config.userInterface.hideUiComponents
         val hideStorySuggestions by context.config.userInterface.hideStorySuggestions
+        val disableSpotlight by context.config.userInterface.disableSpotlight
         val isImmersiveCamera by context.config.camera.immersiveCameraPreview
 
         val displayMetrics = context.resources.displayMetrics
@@ -80,6 +81,12 @@ class UITweaks : Feature("UITweaks") {
 
         val chatNoteRecordButton = getId("chat_note_record_button", "id")
         val unreadHintButton = getId("unread_hint_button", "id")
+        val spotlightNavIds = listOf(
+            getId("hova_nav_spotlight", "id"),
+            getId("ngs_hova_nav_spotlight", "id"),
+            getId("hova_nav_spotlight_tab", "id"),
+            getId("hova_nav_spotlight_button", "id")
+        ).filter { it != 0 }.toSet()
 
         Resources::class.java.methods.first { it.name == "getDimensionPixelSize"}.hook(
             HookStage.AFTER,
@@ -116,6 +123,21 @@ class UITweaks : Feature("UITweaks") {
 
             if (blockAds && viewId == getId("df_promoted_story", "id")) {
                 hideStorySection(event)
+            }
+
+            if (disableSpotlight) {
+                val resourceEntryName = runCatching { context.resources.getResourceEntryName(viewId) }.getOrNull()
+                val isSpotlightNavById = viewId in spotlightNavIds
+                val isSpotlightNavByName = resourceEntryName?.let {
+                    it.contains("spotlight", ignoreCase = true) &&
+                    (it.contains("hova_nav", ignoreCase = true) || it.contains("bottom_nav", ignoreCase = true))
+                } == true
+
+                if (isSpotlightNavById || isSpotlightNavByName) {
+                    view.hideViewCompletely()
+                    event.canceled = true
+                    return@subscribe
+                }
             }
 
             if (isImmersiveCamera) {
