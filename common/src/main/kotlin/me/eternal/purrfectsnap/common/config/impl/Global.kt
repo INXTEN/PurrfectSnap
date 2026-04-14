@@ -3,6 +3,8 @@ package me.eternal.purrfectsnap.common.config.impl
 import me.eternal.purrfectsnap.common.config.ConfigContainer
 import me.eternal.purrfectsnap.common.config.ConfigFlag
 import me.eternal.purrfectsnap.common.config.FeatureNotice
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 class Global : ConfigContainer() {
     companion object {
@@ -46,6 +48,15 @@ class Global : ConfigContainer() {
 
     val betterLocation = container("better_location", BetterLocationConfig())
     val snapchatPlus = unique("snapchat_plus", "not_subscribed", "basic", "ad_free") { requireRestart() }
+    val snapchatPlusCustomPurchaseDate = boolean("snapchat_plus_custom_purchase_date") { requireRestart() }
+    val snapchatPlusPurchaseDate = string("snapchat_plus_purchase_date", "2026-04-14") {
+        requireRestart()
+        inputCheck = {
+            runCatching {
+                LocalDate.parse(it, DateTimeFormatter.ISO_LOCAL_DATE)
+            }.isSuccess
+        }
+    }
     val mediaUploadQualityConfig = container("media_upload_quality", MediaUploadQualityConfig())
     val performanceMode = container("performance_mode", PerformanceModeConfig()) { requireRestart() }.apply {
         profile.set("max")
