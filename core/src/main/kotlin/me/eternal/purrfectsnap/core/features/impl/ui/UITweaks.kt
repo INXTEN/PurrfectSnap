@@ -69,6 +69,21 @@ class UITweaks : Feature("UITweaks") {
         }
     }
 
+    private fun shouldHideSpotlightNav(
+        event: AddViewEvent,
+        spotlightNavIds: Set<Int>,
+        spotlightNavNames: Set<String>
+    ): Boolean {
+        val viewId = event.view.id
+        val resourceEntryName = runCatching { context.resources.getResourceEntryName(viewId) }.getOrNull()
+        val parentClassName = event.parent.javaClass.name
+        val isNavigationParent = parentClassName.contains("hova", ignoreCase = true) &&
+            (parentClassName.contains("nav", ignoreCase = true) || parentClassName.contains("tab", ignoreCase = true))
+        val isSpotlightNavById = viewId in spotlightNavIds
+        val isSpotlightNavByName = resourceEntryName != null && spotlightNavNames.contains(resourceEntryName)
+        return isNavigationParent && (isSpotlightNavById || isSpotlightNavByName)
+    }
+
     private fun onActivityCreate() {
         val blockAds by context.config.global.blockAds
         val hiddenElements by context.config.userInterface.hideUiComponents
@@ -132,6 +147,8 @@ class UITweaks : Feature("UITweaks") {
             }
 
             if (disableSpotlight) {
+                if (shouldHideSpotlightNav(event, spotlightNavIds, spotlightNavNames)) {
+                    view.hideViewCompletely()
                 val resourceEntryName = runCatching { context.resources.getResourceEntryName(viewId) }.getOrNull()
                 val parentClassName = event.parent.javaClass.name
                 val isNavigationParent = parentClassName.contains("hova", ignoreCase = true) &&
