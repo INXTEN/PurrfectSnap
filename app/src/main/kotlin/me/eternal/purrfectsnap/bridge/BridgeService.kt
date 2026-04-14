@@ -2,6 +2,7 @@ package me.eternal.purrfectsnap.bridge
 
 import android.app.Service
 import android.content.Intent
+import android.os.Process
 import android.os.IBinder
 import android.os.ParcelFileDescriptor
 import android.os.RemoteException
@@ -25,6 +26,7 @@ import me.eternal.purrfectsnap.task.TaskType
 import java.io.File
 import java.util.UUID
 import kotlin.system.measureTimeMillis
+import kotlin.system.exitProcess
 
 class BridgeService : Service() {
     private lateinit var remoteSideContext: RemoteSideContext
@@ -293,6 +295,12 @@ class BridgeService : Service() {
 
         override fun getDebugProp(key: String, defaultValue: String?): String? {
             return remoteSideContext.sharedPreferences.all["debug_$key"]?.toString() ?: defaultValue
+        }
+
+        override fun terminateModuleProcess() {
+            remoteSideContext.log.info("Terminating PurrfectSnap module process by request")
+            Process.killProcess(Process.myPid())
+            exitProcess(0)
         }
 
         override fun startCallDownload(

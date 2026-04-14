@@ -320,6 +320,8 @@ class BridgeClient(
 
     fun getDebugProp(name: String, defaultValue: String? = null): String? = safeServiceCall { service.getDebugProp(name, defaultValue) }
 
+    fun terminateModuleProcess() = safeServiceCall { service.terminateModuleProcess() }
+
     fun startCallDownload(
         startTimestamp: Long,
         author: String,
@@ -327,4 +329,3 @@ class BridgeClient(
         return safeServiceCall { service.startCallDownload(startTimestamp, author) }
     }
 }
-

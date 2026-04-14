@@ -19,6 +19,15 @@ class UserInterfaceTweaks : ConfigContainer() {
         val amount = integer("amount", defaultValue = 1)
     }
 
+    inner class ChatButtonHoldKill : ConfigContainer(hasGlobalState = true) {
+        val enabled = boolean("enabled")
+        val targetApps = multiple("target_apps", "kill_snapchat", "kill_purrfectsnap") {
+            customOptionTranslationPath = "features.options.chat_button_hold_kill.target_apps"
+        }.apply {
+            set(mutableListOf("kill_snapchat"))
+        }
+    }
+
 
     val friendFeedMenuButtons = multiple(
         "friend_feed_menu_buttons","conversation_info", "mark_chat_as_read", "mark_snaps_as_seen", "mark_stories_as_seen_locally", *MessagingRuleType.entries.filter { it.showInFriendMenu }.map { it.key }.toTypedArray()
@@ -63,6 +72,7 @@ class UserInterfaceTweaks : ConfigContainer() {
     }
     val preventForcedKeyboard = boolean("prevent_forced_keyboard") { requireRestart() }
     val settingsMenu = unique("settings_menu", "default", "legacy") { requireRestart() }.apply { set("default") }
+    val chatButtonHoldKill = container("chat_button_hold_kill", ChatButtonHoldKill()) { requireRestart() }
 
     inner class SpoofSnapScore : ConfigContainer(hasGlobalState = true) {
         val customSnapScore = string("custom_snap_score") { 

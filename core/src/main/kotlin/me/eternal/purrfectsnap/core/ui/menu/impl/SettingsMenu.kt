@@ -22,6 +22,29 @@ class SettingsMenu : AbstractMenu() {
                     view.setOnClickListener {
                         context.bridgeClient.openOverlay(OverlayType.SETTINGS)
                     }
+                    view.setOnLongClickListener {
+                        val holdKillConfig = context.config.userInterface.chatButtonHoldKill
+                        if (!holdKillConfig.enabled.get()) {
+                            return@setOnLongClickListener false
+                        }
+
+                        val targetApps = holdKillConfig.targetApps.get()
+                        val shouldKillModule = targetApps.contains("kill_purrfectsnap")
+                        val shouldKillSnapchat = targetApps.contains("kill_snapchat")
+
+                        if (shouldKillModule) {
+                            runCatching {
+                                context.bridgeClient.terminateModuleProcess()
+                            }.onFailure {
+                                context.log.error("Failed to terminate PurrfectSnap module process", it, "SettingsMenu")
+                            }
+                        }
+                        if (shouldKillSnapchat) {
+                            context.forceCloseApp()
+                        }
+
+                        shouldKillModule || shouldKillSnapchat
+                    }
                 }
             }
         }
