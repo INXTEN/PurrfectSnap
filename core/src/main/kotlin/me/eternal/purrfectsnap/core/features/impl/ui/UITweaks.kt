@@ -141,6 +141,15 @@ class UITweaks : Feature("UITweaks") {
 
                 if (isSpotlightNavById || isSpotlightNavByName || isSpotlightNavByContentDescription) {
                     view.hideViewCompletely()
+                val isSpotlightNavById = viewId in spotlightNavIds
+                val isSpotlightNavByName = resourceEntryName?.let {
+                    it.contains("spotlight", ignoreCase = true) &&
+                    (it.contains("hova_nav", ignoreCase = true) || it.contains("bottom_nav", ignoreCase = true))
+                } == true
+
+                if (isSpotlightNavById || isSpotlightNavByName) {
+                    view.hideViewCompletely()
+                    event.canceled = true
                     return@subscribe
                 }
             }

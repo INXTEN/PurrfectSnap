@@ -22,7 +22,7 @@ open class ScriptRuntime(
 
     private val modules = mutableMapOf<String, JSModule>()
 
-    fun eachModule(f: JSModule.() -> Unit) {
+    open fun eachModule(f: JSModule.() -> Unit) {
         modules.values.forEach { module ->
             runCatching {
                 module.f()

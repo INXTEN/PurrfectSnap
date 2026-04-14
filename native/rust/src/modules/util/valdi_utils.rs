@@ -42,6 +42,9 @@ pub struct ValdiModule {
 
 impl ValdiModule {
     pub fn parse(buffer: Vec<u8>) -> Result<ValdiModule, Error> {
+        if buffer.len() < 8 {
+            return Err(Error::new(std::io::ErrorKind::InvalidData, "Buffer too small"));
+        }
         let mut offset = 0;
         let magic = u32::from_be_bytes([buffer[offset], buffer[offset + 1], buffer[offset + 2], buffer[offset + 3]]);
 
@@ -62,14 +65,13 @@ impl ValdiModule {
             }
 
             fn read_u32(buffer: &Vec<u8>, offset: &mut usize) -> Result<(u32, bool), Error> {
-                let b1 = buffer[*offset] as u32;
-                let b2 = buffer[*offset + 1] as u32;
-                let b3 = buffer[*offset + 2] as u32;
-                let b4 = (buffer[*offset + 3] & 0x7f) as u32;
-                let has_padding = (buffer[*offset + 3] & 0x80) != 0;
+                let bytes = [buffer[*offset], buffer[*offset + 1], buffer[*offset + 2], buffer[*offset + 3]];
+                let value = u32::from_be_bytes(bytes);
+                let has_padding = (value & 0x80000000) != 0;
+                let tag_size = value & 0x7FFFFFFF;
 
                 *offset += 4;
-                Ok((b1 | (b2 << 8) | (b3 << 16) | (b4 << 24), has_padding))
+                Ok((tag_size, has_padding))
             }
 
             let (tag_size, has_padding) = read_u32(&buffer, &mut offset)?;
@@ -98,10 +100,8 @@ impl ValdiModule {
         let mut tag_buffer = Vec::new();
 
         fn write_u32(buffer: &mut Vec<u8>, value: u32, has_padding: bool) {
-            buffer.push(value as u8);
-            buffer.push(((value >> 8) & 0xff) as u8);
-            buffer.push(((value >> 16) & 0xff) as u8);
-            buffer.push(((value >> 24) & 0x7f) as u8 | if has_padding { 0x80 } else { 0x00 });
+            let encoded_value = (value & 0x7FFFFFFF) | if has_padding { 0x80000000 } else { 0 };
+            buffer.extend_from_slice(&encoded_value.to_be_bytes());
         }
 
         fn write_tag(buffer: &mut Vec<u8>, tag: ModuleTag) {
@@ -125,7 +125,7 @@ impl ValdiModule {
         let mut buffer = Vec::new();
 
         buffer.extend_from_slice(&[0x33, 0xc6, 0, 1]);
-        buffer.extend_from_slice(&(tag_buffer.len() as u32).to_le_bytes());
+        buffer.extend_from_slice(&(tag_buffer.len() as u32).to_be_bytes());
         buffer.extend(tag_buffer);
 
         buffer

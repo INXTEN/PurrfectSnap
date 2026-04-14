@@ -86,7 +86,8 @@ class AnnouncementCheckWorker(
         val pendingIntent = PendingIntent.getActivity(appContext, 0, intent, PendingIntent.FLAG_IMMUTABLE)
 
         val builder = NotificationCompat.Builder(appContext, channelId)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.mipmap.ic_launcher_monochrome)
+            .setLargeIcon(android.graphics.BitmapFactory.decodeResource(appContext.resources, R.mipmap.ic_launcher))
             .setContentTitle(title)
             .setContentText(text)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)

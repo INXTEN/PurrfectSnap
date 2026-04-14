@@ -30,6 +30,38 @@ class ParamMap(obj: Any?) : AbstractWrapper(obj) {
         return concurrentHashMap.keys.any { k: Any -> k.toString() == key }
     }
 
+    fun getStoryIdentity(): String? {
+        return this["STORY_ID"]?.toString()
+            ?.takeIf { it.isNotBlank() && it != "null" }
+            ?: this["TOPIC_SNAP_CREATOR_USER_ID"]?.toString()
+                ?.takeIf { it.isNotBlank() && it != "null" }
+            ?: this["STORY_SNAP_ID"]?.toString()
+                ?.substringBefore("_")
+                ?.takeIf { it.isNotBlank() && it != "null" }
+            ?: this["PLAYLIST_V2_GROUP"]?.toString()
+                ?.substringAfter("storyUserId=", "")
+                ?.substringBefore(",")
+                ?.takeIf { it.isNotBlank() && it != "null" }
+            ?: this["PLAYABLE_STORY_SNAP_RECORD"]?.toString()
+                ?.substringAfter("storyUserId=", "")
+                ?.substringBefore(",")
+                ?.takeIf { it.isNotBlank() && it != "null" }
+    }
+
+    fun getStorySnapIndex(): Int? {
+        return (this["STORY_SNAP_INDEX"] as? Int)
+            ?: (this["snap_index_in_story"]?.toString()?.toIntOrNull())
+            ?: (this["SNAP_POSITION_IN_STORY"]?.toString()?.toIntOrNull())
+            ?: (this["REPLAYABLE_STORY_SNAP_RECORD"]?.toString()?.substringAfter("snapIndex=", "")?.substringBefore(",")?.toIntOrNull())
+    }
+
+    fun getStorySnapTotal(): Int {
+        return (this["STORY_SNAP_TOTAL"] as? Int)
+            ?: (this["snap_story_length"]?.toString()?.toIntOrNull())
+            ?: (this["NUM_SNAPS_IN_STORY"]?.toString()?.toIntOrNull())
+            ?: 0
+    }
+
     override fun toString(): String {
         return concurrentHashMap.toString()
     }
