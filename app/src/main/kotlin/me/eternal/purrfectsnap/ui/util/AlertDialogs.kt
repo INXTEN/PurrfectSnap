@@ -75,6 +75,10 @@ import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Overlay
 import java.io.File
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import me.eternal.purrfectsnap.ui.util.purrfectSwitchColors
 import me.eternal.purrfectsnap.ui.util.Dialog as StandardDialog
 
@@ -501,6 +505,68 @@ class AlertDialogs(
                     }
                     dismiss()
                 },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PurrfectPalette.glowPrimary.copy(alpha = 0.32f),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(text = translation["button.ok"])
+                }
+            }
+        }
+    }
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun DatePickerPropertyDialog(property: PropertyPair<*>, dismiss: () -> Unit = {}) {
+        val context = LocalContext.current
+        val zoneId = remember { ZoneId.systemDefault() }
+        val initialSelectedDateMillis = remember(property.value.get()) {
+            runCatching {
+                LocalDate
+                    .parse(property.value.get().toString(), DateTimeFormatter.ISO_LOCAL_DATE)
+                    .atStartOfDay(zoneId)
+                    .toInstant()
+                    .toEpochMilli()
+            }.getOrNull()
+        }
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialSelectedDateMillis)
+
+        DefaultDialogCard {
+            DatePicker(
+                state = datePickerState,
+                showModeToggle = true
+            )
+
+            Row(
+                modifier = Modifier
+                    .padding(top = 10.dp)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
+            ) {
+                Button(
+                    onClick = { dismiss() },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White.copy(alpha = 0.08f),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(text = translation["button.cancel"])
+                }
+                Button(
+                    onClick = {
+                        val selectedDate = datePickerState.selectedDateMillis?.let {
+                            Instant.ofEpochMilli(it).atZone(zoneId).toLocalDate()
+                        }
+
+                        if (selectedDate == null) {
+                            Toast.makeText(context, translation["invalid_input_toast"], Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+
+                        property.value.setAny(selectedDate.format(DateTimeFormatter.ISO_LOCAL_DATE))
+                        dismiss()
+                    },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = PurrfectPalette.glowPrimary.copy(alpha = 0.32f),
                         contentColor = Color.White
@@ -1615,4 +1681,3 @@ class AlertDialogs(
         }
     }
 }
-
