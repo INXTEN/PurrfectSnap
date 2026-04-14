@@ -9,9 +9,9 @@ class DownloaderConfig : ConfigContainer() {
         val threads = integer("threads", 4) // Bump Default Value to 4 Tested on Pixel 5 (Qualcomm Snapdragon 765G) Had no lag
         val preset = unique("preset", "ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow") {
             addFlags(ConfigFlag.NO_TRANSLATE)
-        }
-        val constantRateFactor = integer("constant_rate_factor", 30)
-        val videoBitrate = integer("video_bitrate", 5000)
+        }.apply { set("veryfast") }
+        val constantRateFactor = integer("constant_rate_factor", 22)
+        val videoBitrate = integer("video_bitrate", 8000)
         val audioBitrate = integer("audio_bitrate", 128)
         val customVideoCodec = string("custom_video_codec") { addFlags(ConfigFlag.NO_TRANSLATE) }
         val customAudioCodec = string("custom_audio_codec") { addFlags(ConfigFlag.NO_TRANSLATE) }

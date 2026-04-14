@@ -256,6 +256,15 @@
             "home_logs": {
                 "no_logs_hint": "No logs available",
                 "refresh_hint": "Pull to refresh or trigger an action to see new entries.",
+                "filter_logs_title": "Filter Log Categories",
+                "filter_logs_menu_item": "Filter Logs",
+                "filter_logs_done_button": "Done",
+                "log_category_core": "Core",
+                "log_category_auto_open": "Auto-Open",
+                "log_category_media": "Media",
+                "log_category_bridge": "Bridge",
+                "log_category_system": "System",
+                "log_category_tracker": "Tracker",
                 "clear_logs_button": "Clear Logs",
                 "export_logs_button": "Export Logs",
                 "saving_logs_toast": "Saving logs, this may take a while ...",
@@ -1693,6 +1702,14 @@
                                 "name": "Allow Running in Background",
                                 "description": "Allows Auto Open Snaps to run in the background. Note: This will significantly drain your battery"
                             },
+                            "delay_between_snaps": {
+                                "name": "Delay Between Snaps",
+                                "description": "The delay in milliseconds between opening each individual Snap"
+                            },
+                            "delay_between_conversations": {
+                                "name": "Delay Between Conversations",
+                                "description": "The delay in milliseconds when switching to open Snaps from a different conversation"
+                            },
                             "min_delay": {
                                 "name": "Min Delay (ms)",
                                 "description": "Minimum delay in milliseconds before opening a snap"
@@ -2195,6 +2212,10 @@
                             "disable_bitmoji": {
                                 "name": "Disable Bitmoji",
                                 "description": "Disables Friends Profile Bitmoji"
+                            },
+                            "debug_font_redirect": {
+                                "name": "Debug Native Font Redirect",
+                                "description": "Logs native font interception. For developer use only."
                             },
                             "custom_emoji_font": {
                                 "name": "Custom Emoji Font",
@@ -3765,6 +3786,7 @@
             "snap_item": "Snap {index} of {total}"
         },
         "batch_download_complete_toast": "All snaps downloaded",
+        "batch_progress_toast": "Downloading {current}/{total}",
         "batch_download_jump_failed_toast": "Could not navigate to next snap. Ensure Story Snap Jump is enabled and the story view is visible."
     },
     "streaks_reminder": {
@@ -4425,8 +4447,7 @@
         "deepseek": "DeepSeek",
         "openai": "OpenAI",
         "openrouter": "OpenRouter"
-    }
-    ,
+    },
     "tasks_no_tasks": "No tasks",
     "tasks_no_active_tasks": "No active tasks",
     "tasks_no_scheduled_tasks": "No scheduled snaps",
@@ -4435,8 +4456,8 @@
     "tasks_clear_button_description": "Clear tasks",
     "tasks_delete_button": "Delete",
     "tasks_merge_button": "Merge",
-    "tasks_summary_active": "{active} active · {recent} recent",
-    "tasks_summary_idle": "Idle · {recent} recent",
+    "tasks_summary_active": "{active} active \u2022 {recent} recent",
+    "tasks_summary_idle": "Idle \u2022 {recent} recent",
     "tasks_running_count": "{count} running",
     "tasks_tagline": "Monitor and manage background actions",
     "tasks_failed_to_open_file": "Failed to open file",
