@@ -1240,6 +1240,10 @@
                         "name": "Settings Menu",
                         "description": "Choose between the new and legacy settings menu layouts"
                     },
+                    "chat_hold_kill_actions": {
+                        "name": "PurrfectSnap Chat Hold Kill",
+                        "description": "Hold the chat/settings header button to kill selected app(s). Leave all options off to disable."
+                    },
                     "spoof_snap_score": {
                         "name": "Spoof Snap Score",
                         "description": "Spoof your Snap Score (local only)",
@@ -1918,6 +1922,10 @@
                     "snapchat_plus": {
                         "name": "Snapchat Plus",
                         "description": "Enables Snapchat Plus features\nSome Server-sided features may not work"
+                    },
+                    "snapchat_plus_purchase_date": {
+                        "name": "Snapchat Plus Purchase Date",
+                        "description": "Tap Save to choose a date from calendar (leave empty to use default)"
                     },
                     "media_upload_quality": {
                         "name": "Media Upload Quality",
@@ -2905,6 +2913,10 @@
                 "default": "Default",
                 "legacy": "Legacy"
             },
+            "chat_hold_kill_actions": {
+                "kill_snapchat": "Kill Snapchat",
+                "kill_purrfectsnap": "Kill PurrfectSnap"
+            },
             "path_format": {
                 "create_author_folder": "Create folder for each author",
                 "create_source_folder": "Create folder for each media source type",
@@ -3623,6 +3635,7 @@
         "cancel": "Cancel",
         "copy": "Copy",
         "save": "Save",
+        "set": "Set",
         "open": "Open",
         "download": "Download",
         "import": "Import",

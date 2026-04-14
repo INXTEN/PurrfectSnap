@@ -1,9 +1,12 @@
 package me.eternal.purrfectsnap.core.ui.menu.impl
 
+import android.app.ActivityManager
+import android.os.Process
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
+import me.eternal.purrfectsnap.common.Constants
 import me.eternal.purrfectsnap.common.ui.OverlayType
 import me.eternal.purrfectsnap.core.event.events.impl.AddViewEvent
 import me.eternal.purrfectsnap.core.ui.menu.AbstractMenu
@@ -47,6 +50,9 @@ class SettingsGearInjector : AbstractMenu() {
                         this@SettingsGearInjector.context.log.info("Gear icon clicked.", logTag)
                         this@SettingsGearInjector.context.bridgeClient.openOverlay(OverlayType.SETTINGS)
                     }
+                    setOnLongClickListener {
+                        this@SettingsGearInjector.handleChatHoldKillAction()
+                    }
                 }
 
                 val layoutParams = FrameLayout.LayoutParams(
@@ -87,5 +93,25 @@ class SettingsGearInjector : AbstractMenu() {
                 }
             }
         }
+    }
+
+    private fun handleChatHoldKillAction(): Boolean {
+        val selectedActions = context.config.userInterface.chatHoldKillActions.get()
+        if (selectedActions.isEmpty()) return false
+
+        context.mainActivity?.vibrateLongPress()
+
+        if (selectedActions.contains("kill_purrfectsnap")) {
+            runCatching {
+                val activityManager = context.androidContext.getSystemService(ActivityManager::class.java)
+                activityManager?.killBackgroundProcesses(Constants.MODULE_PACKAGE_NAME)
+            }
+        }
+
+        if (selectedActions.contains("kill_snapchat")) {
+            Process.killProcess(Process.myPid())
+        }
+
+        return true
     }
 }

@@ -779,11 +779,14 @@ class FeaturesRootSection : Routes.Route() {
                         DataProcessors.Type.STRING, DataProcessors.Type.INTEGER, DataProcessors.Type.FLOAT -> {
                             val isMessageListProperty = property.key.name.endsWith("_messages")
                             val isSleepWindowProperty = property.key.name.contains("sleep_window")
+                            val isSnapchatPlusPurchaseDateProperty = property.key.name == "snapchat_plus_purchase_date"
 
                             if (isMessageListProperty) {
                                 alertDialogs.MessageListPropertyDialog(property) { showDialog = false }
                             } else if (isSleepWindowProperty) {
                                 alertDialogs.AutoOpenScheduleDialog(property as PropertyPair<String>) { showDialog = false }
+                            } else if (isSnapchatPlusPurchaseDateProperty) {
+                                alertDialogs.DatePickerPropertyDialog(property) { showDialog = false }
                             } else {
                                 alertDialogs.KeyboardInputDialog(property) { showDialog = false }
                             }
@@ -801,6 +804,7 @@ class FeaturesRootSection : Routes.Route() {
                     )
                 } else {
                     val isMessageListProperty = property.key.name.endsWith("_messages")
+                    val isSnapchatPlusPurchaseDateProperty = property.key.name == "snapchat_plus_purchase_date"
                     if (isMessageListProperty) {
                         val messageCount = try {
                             val messageList: List<String> = gson.fromJson(propertyValue.get().toString(), listTypeToken) ?: emptyList()
@@ -821,6 +825,16 @@ class FeaturesRootSection : Routes.Route() {
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Color.White
                             )
+                        }
+                    } else if (isSnapchatPlusPurchaseDateProperty) {
+                        Button(
+                            onClick = click,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PurrfectPalette.glowPrimary.copy(alpha = 0.28f),
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Text(translation["button.set"] ?: "Set")
                         }
                     } else {
                         IconButton(onClick = click) {
