@@ -827,10 +827,15 @@ class FeaturesRootSection : Routes.Route() {
                             )
                         }
                     } else if (isSnapchatPlusPurchaseDateProperty) {
-                        ValueGlowChip(
-                            text = propertyValue.get().toString(),
-                            onClick = click
-                        )
+                        Button(
+                            onClick = click,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PurrfectPalette.glowPrimary.copy(alpha = 0.28f),
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Text(translation["button.save"] ?: "Set")
+                        }
                     } else {
                         IconButton(onClick = click) {
                             Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null)

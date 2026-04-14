@@ -48,13 +48,10 @@ class Global : ConfigContainer() {
 
     val betterLocation = container("better_location", BetterLocationConfig())
     val snapchatPlus = unique("snapchat_plus", "not_subscribed", "basic", "ad_free") { requireRestart() }
-    val snapchatPlusCustomPurchaseDate = boolean("snapchat_plus_custom_purchase_date") { requireRestart() }
-    val snapchatPlusPurchaseDate = string("snapchat_plus_purchase_date", "2026-04-14") {
+    val snapchatPlusPurchaseDate = string("snapchat_plus_purchase_date", "") {
         requireRestart()
         inputCheck = {
-            runCatching {
-                LocalDate.parse(it, DateTimeFormatter.ISO_LOCAL_DATE)
-            }.isSuccess
+            it.isBlank() || runCatching { LocalDate.parse(it, DateTimeFormatter.ISO_LOCAL_DATE) }.isSuccess
         }
     }
     val mediaUploadQualityConfig = container("media_upload_quality", MediaUploadQualityConfig())
