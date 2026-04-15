@@ -71,17 +71,20 @@ class UITweaks : Feature("UITweaks") {
 
     private fun shouldHideSpotlightNav(
         event: AddViewEvent,
-        spotlightNavIds: Set<Int>,
-        spotlightNavNames: Set<String>
+        spotlightNavIds: Set<Int>
     ): Boolean {
         val viewId = event.view.id
+        if (viewId in spotlightNavIds) return true
+
+        // Keep the fallback scoped to home/bottom navigation resource names so
+        // chat media viewers and spotlight-related content surfaces still open.
         val resourceEntryName = runCatching { context.resources.getResourceEntryName(viewId) }.getOrNull()
-        val parentClassName = event.parent.javaClass.name
-        val isNavigationParent = parentClassName.contains("hova", ignoreCase = true) &&
-            (parentClassName.contains("nav", ignoreCase = true) || parentClassName.contains("tab", ignoreCase = true))
-        val isSpotlightNavById = viewId in spotlightNavIds
-        val isSpotlightNavByName = resourceEntryName != null && spotlightNavNames.contains(resourceEntryName)
-        return isNavigationParent && (isSpotlightNavById || isSpotlightNavByName)
+            ?: return false
+        return resourceEntryName.contains("spotlight", ignoreCase = true) &&
+            (
+                resourceEntryName.contains("hova_nav", ignoreCase = true) ||
+                    resourceEntryName.contains("bottom_nav", ignoreCase = true)
+                )
     }
 
     private fun onActivityCreate() {
@@ -102,20 +105,16 @@ class UITweaks : Feature("UITweaks") {
             getId("hova_nav_spotlight_tab", "id"),
             getId("hova_nav_spotlight_button", "id")
         ).filter { it != 0 }.toSet()
-        val spotlightNavNames = setOf(
-            "hova_nav_spotlight",
-            "ngs_hova_nav_spotlight",
-            "hova_nav_spotlight_tab",
-            "hova_nav_spotlight_button"
-        )
 
-        Resources::class.java.methods.first { it.name == "getDimensionPixelSize"}.hook(
+        Resources::class.java.methods.first { it.name == "getDimensionPixelSize" }.hook(
             HookStage.AFTER,
             { isImmersiveCamera }
         ) { param ->
             val id = param.arg<Int>(0)
-            if (id == getId("capri_viewfinder_default_corner_radius", "dimen") ||
-                id == getId("ngs_hova_nav_larger_camera_button_size", "dimen")) {
+            if (
+                id == getId("capri_viewfinder_default_corner_radius", "dimen") ||
+                id == getId("ngs_hova_nav_larger_camera_button_size", "dimen")
+            ) {
                 param.setResult(0)
             }
         }
@@ -124,12 +123,17 @@ class UITweaks : Feature("UITweaks") {
             if (event.view is FrameLayout) {
                 fun removeView() {
                     event.view.layoutParams = event.view.layoutParams?.apply {
-                        width = 0; height = 0
+                        width = 0
+                        height = 0
                     } ?: return
                 }
 
                 val viewModelString = event.prevModel.toString()
-                val isMyStory by lazy { viewModelString.let { it.startsWith("StoryCarouselItemViewModel") && it.contains("storyId=") } }
+                val isMyStory by lazy {
+                    viewModelString.let {
+                        it.startsWith("StoryCarouselItemViewModel") && it.contains("storyId=")
+                    }
+                }
 
                 if (hideStorySuggestions.contains("hide_my_stories") && isMyStory) {
                     removeView()
@@ -146,12 +150,10 @@ class UITweaks : Feature("UITweaks") {
                 hideStorySection(event)
             }
 
-            if (disableSpotlight) {
-                if (shouldHideSpotlightNav(event, spotlightNavIds, spotlightNavNames)) {
-                    view.hideViewCompletely()
-                    event.canceled = true
-                    return@subscribe
-                }
+            if (disableSpotlight && shouldHideSpotlightNav(event, spotlightNavIds)) {
+                view.hideViewCompletely()
+                event.canceled = true
+                return@subscribe
             }
 
             if (isImmersiveCamera) {
@@ -170,7 +172,10 @@ class UITweaks : Feature("UITweaks") {
                 }
             }
 
-            if (hiddenElements.contains("hide_billboard_prompt") && event.parent.javaClass.name.endsWith("BillboardFeedHeaderPromptComponent")) {
+            if (
+                hiddenElements.contains("hide_billboard_prompt") &&
+                event.parent.javaClass.name.endsWith("BillboardFeedHeaderPromptComponent")
+            ) {
                 hideView(event.parent)
                 view.getValdiContext()?.componentContext?.get()?.dataBuilder {
                     val dismissFunction = get<Any>("_onDismiss") ?: return@subscribe
@@ -178,7 +183,11 @@ class UITweaks : Feature("UITweaks") {
                 }
             }
 
-            if (event.parent.javaClass.name.endsWith("ConstraintLayout") && event.view is LinearLayout && hiddenElements.contains("hide_map_reactions")) {
+            if (
+                event.parent.javaClass.name.endsWith("ConstraintLayout") &&
+                event.view is LinearLayout &&
+                hiddenElements.contains("hide_map_reactions")
+            ) {
                 val viewGroup = event.view as ViewGroup
                 val children = viewGroup.children()
 
@@ -190,7 +199,10 @@ class UITweaks : Feature("UITweaks") {
                 }
             }
 
-            if (event.parent.javaClass.name.endsWith("PreviewBottomToolbarView") && hiddenElements.contains("hide_post_to_story_buttons")) {
+            if (
+                event.parent.javaClass.name.endsWith("PreviewBottomToolbarView") &&
+                hiddenElements.contains("hide_post_to_story_buttons")
+            ) {
                 if (event.parent.childCount == 1) {
                     event.view.hideViewCompletely()
                 }
@@ -199,7 +211,8 @@ class UITweaks : Feature("UITweaks") {
             if (viewId == getId("send_btn", "id") && hiddenElements.contains("hide_post_to_story_buttons")) {
                 // hide previous view
                 if (event.parent.childCount > 0) {
-                    val lastChild = event.parent.getChildAt(event.parent.childCount - 1)?.takeIf { it is LinearLayout } ?: return@subscribe
+                    val lastChild = event.parent.getChildAt(event.parent.childCount - 1)
+                        ?.takeIf { it is LinearLayout } ?: return@subscribe
                     context.log.verbose("Hiding post to story button")
                     lastChild.hideViewCompletely()
                 }
@@ -210,7 +223,11 @@ class UITweaks : Feature("UITweaks") {
 
                 if (hiddenElements.contains("hide_live_location_share_button")) {
                     chatInputBar?.onLayoutChange {
-                        chatInputBar!!.children().lastOrNull { it.javaClass.name.endsWith("AppCompatImageButton") && runCatching { it.resources.getResourceName(it.id) }.getOrNull() == null }
+                        chatInputBar!!.children()
+                            .lastOrNull {
+                                it.javaClass.name.endsWith("AppCompatImageButton") &&
+                                    runCatching { it.resources.getResourceName(it.id) }.getOrNull() == null
+                            }
                             ?.hideViewCompletely()
                     }
                 }
@@ -234,12 +251,12 @@ class UITweaks : Feature("UITweaks") {
             if (viewId == unreadHintButton && hiddenElements.contains("hide_unread_chat_hint")) {
                 event.canceled = true
             }
-        } // end AddViewEvent subscription
+        }
     }
 
     override fun init() {
         onNextActivityCreate {
             onActivityCreate()
         }
-    } // end init
-} // end UITweaks
+    }
+}
