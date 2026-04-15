@@ -59,12 +59,14 @@ fun InputStream.toParcelFileDescriptor(coroutineScope: CoroutineScope): ParcelFi
     val fos = ParcelFileDescriptor.AutoCloseOutputStream(pfd[1])
 
     coroutineScope.launch(Dispatchers.IO) {
-        try {
-            copyTo(fos)
-        } finally {
-            close()
-            fos.flush()
-            fos.close()
+        runCatching {
+            try {
+                copyTo(fos)
+            } finally {
+                close()
+                fos.flush()
+                fos.close()
+            }
         }
     }
 
