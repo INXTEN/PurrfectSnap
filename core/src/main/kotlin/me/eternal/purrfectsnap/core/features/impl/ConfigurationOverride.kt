@@ -165,8 +165,6 @@ class ConfigurationOverride : Feature("Configuration Override") {
 
             overrideProperty("DF_VOPERA_FOR_STORIES", { context.config.userInterface.verticalStoryViewer.get() },
                 { true }, isAppExperiment = true)
-            overrideProperty("SPOTLIGHT_5TH_TAB_ENABLED", { context.config.userInterface.disableSpotlight.get() },
-                { false })
 
             overrideProperty("BYPASS_AD_FEATURE_GATE", { context.config.global.blockAds.get() },
                 { true })

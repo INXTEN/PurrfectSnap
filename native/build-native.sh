@@ -338,4 +338,14 @@ case "$1" in
 esac
 
 cd "$RUST_DIR"
+
+# macOS CI runners may inject DYLD override variables that break Rust/cargo
+# processes with libc++abi symbol shim errors and bus error 10.
+if [[ "$HOST_TAG" == darwin-* ]]; then
+  unset DYLD_INSERT_LIBRARIES
+  unset DYLD_LIBRARY_PATH
+  unset DYLD_FRAMEWORK_PATH
+  unset DYLD_ROOT_PATH
+fi
+
 rustup run "$TOOLCHAIN" cargo build --release --target "$1"
