@@ -115,7 +115,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: manager
-          path: manager/build/outputs/apk/debug/*.apk
+          path: mapper/build/outputs/apk/debug/*.apk
 
   job_core:
     runs-on: ubuntu-latest
