@@ -73,18 +73,41 @@ class UITweaks : Feature("UITweaks") {
         event: AddViewEvent,
         spotlightNavIds: Set<Int>
     ): Boolean {
-        val viewId = event.view.id
-        if (viewId in spotlightNavIds) return true
+        fun resourceEntryNameOrNull(id: Int): String? {
+            if (id == View.NO_ID || id == 0) return null
+            return runCatching { context.resources.getResourceEntryName(id) }.getOrNull()
+        }
 
-        // Keep the fallback scoped to home/bottom navigation resource names so
-        // chat media viewers and spotlight-related content surfaces still open.
-        val resourceEntryName = runCatching { context.resources.getResourceEntryName(viewId) }.getOrNull()
-            ?: return false
-        return resourceEntryName.contains("spotlight", ignoreCase = true) &&
-            (
-                resourceEntryName.contains("hova_nav", ignoreCase = true) ||
-                    resourceEntryName.contains("bottom_nav", ignoreCase = true)
-                )
+        val viewId = event.view.id
+        val parentId = event.parent.id
+        if (viewId in spotlightNavIds || parentId in spotlightNavIds) return true
+
+        val parentClassName = event.parent.javaClass.name
+        val isHomeNavigationContainer = parentClassName.contains("hova", ignoreCase = true) &&
+            (parentClassName.contains("nav", ignoreCase = true) || parentClassName.contains("tab", ignoreCase = true))
+
+        // Keep the fallback scoped to home/bottom navigation containers so chat
+        // media viewers and Spotlight content tabs are left alone.
+        val resourceNames = listOfNotNull(
+            resourceEntryNameOrNull(viewId),
+            resourceEntryNameOrNull(parentId)
+        )
+        val matchesNavResourceName = resourceNames.any { resourceEntryName ->
+            resourceEntryName.contains("spotlight", ignoreCase = true) &&
+                (
+                    resourceEntryName.contains("hova_nav", ignoreCase = true) ||
+                        resourceEntryName.contains("bottom_nav", ignoreCase = true) ||
+                        resourceEntryName.contains("nav", ignoreCase = true)
+                    )
+        }
+        val matchesNavContentDescription = listOfNotNull(
+            event.view.contentDescription?.toString(),
+            event.parent.contentDescription?.toString()
+        ).any { contentDescription ->
+            contentDescription.contains("spotlight", ignoreCase = true)
+        }
+
+        return isHomeNavigationContainer && (matchesNavResourceName || matchesNavContentDescription)
     }
 
     private fun onActivityCreate() {
