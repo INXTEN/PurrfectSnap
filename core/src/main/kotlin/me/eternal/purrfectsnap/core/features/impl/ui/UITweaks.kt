@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import android.view.ViewGroup.MarginLayoutParams
 import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.TextView
 import me.eternal.purrfectsnap.core.event.events.impl.AddViewEvent
 import me.eternal.purrfectsnap.core.event.events.impl.BindViewEvent
 import me.eternal.purrfectsnap.core.features.Feature
@@ -69,62 +70,90 @@ class UITweaks : Feature("UITweaks") {
         }
     }
 
-    private fun shouldHideSpotlightNav(
+    private fun findSpotlightNavTarget(
         event: AddViewEvent,
         spotlightNavIds: Set<Int>,
         spotlightNavNames: Set<String>
-    ): Boolean {
+    ): View? {
+        data class ViewMetadata(
+            val view: View,
+            val resourceEntryName: String?,
+            val contentDescription: String?,
+            val text: String?,
+            val className: String
+        )
+
         fun resourceEntryNameOrNull(view: View): String? {
             val id = view.id
             if (id == View.NO_ID || id == 0) return null
             return runCatching { context.resources.getResourceEntryName(id) }.getOrNull()
         }
 
-        val views = buildList {
+        val markerKeywords = setOf("spotlight", "following", "discover")
+
+        val viewChain = buildList {
             var current: View? = event.view
             repeat(5) {
                 current ?: return@repeat
-                add(current!!)
+                add(
+                    ViewMetadata(
+                        view = current!!,
+                        resourceEntryName = resourceEntryNameOrNull(current!!),
+                        contentDescription = current!!.contentDescription?.toString(),
+                        text = (current as? TextView)?.text?.toString(),
+                        className = current!!.javaClass.name
+                    )
+                )
                 current = current?.parent as? View
             }
         }
 
-        if (views.any { it.id in spotlightNavIds }) return true
-
-        val resourceNames = views.mapNotNull(::resourceEntryNameOrNull)
-
-        if (resourceNames.any { it in spotlightNavNames }) return true
-
-        // Keep the fallback scoped to home/bottom navigation resource names so
-        // chat media viewers and spotlight-related content surfaces still open.
-        val classNames = views.map { it.javaClass.name }
-        val contentDescriptions = views.mapNotNull { it.contentDescription?.toString() }
-
-        val hasSpotlightMarker = resourceNames.any { it.contains("spotlight", ignoreCase = true) } ||
-            contentDescriptions.any { it.contains("spotlight", ignoreCase = true) }
-
-        if (!hasSpotlightMarker) return false
-
-        val matchesNavigationName = resourceNames.any { resourceEntryName ->
-            val isSpotlightTabName =
-                resourceEntryName.contains("spotlight", ignoreCase = true) ||
-                    resourceEntryName.contains("following", ignoreCase = true)
-            val isNavigationName =
-                resourceEntryName.contains("hova_nav", ignoreCase = true) ||
-                    resourceEntryName.contains("bottom_nav", ignoreCase = true) ||
-                    resourceEntryName.contains("nav", ignoreCase = true) ||
-                    resourceEntryName.contains("tab", ignoreCase = true)
-            isSpotlightTabName && isNavigationName
+        fun isExactMatch(metadata: ViewMetadata): Boolean {
+            return metadata.view.id in spotlightNavIds ||
+                metadata.resourceEntryName in spotlightNavNames
         }
 
-        val matchesNavigationClass = classNames.any { className ->
-            className.contains("navigation", ignoreCase = true) ||
+        fun hasMarker(metadata: ViewMetadata): Boolean {
+            return listOfNotNull(
+                metadata.resourceEntryName,
+                metadata.contentDescription,
+                metadata.text
+            ).any { value ->
+                markerKeywords.any { keyword ->
+                    value.contains(keyword, ignoreCase = true)
+                }
+            }
+        }
+
+        fun isNavigationLike(metadata: ViewMetadata): Boolean {
+            val resourceEntryName = metadata.resourceEntryName.orEmpty()
+            val className = metadata.className
+            return resourceEntryName.contains("hova_nav", ignoreCase = true) ||
+                resourceEntryName.contains("bottom_nav", ignoreCase = true) ||
+                resourceEntryName.contains("nav", ignoreCase = true) ||
+                resourceEntryName.contains("tab", ignoreCase = true) ||
+                className.contains("navigation", ignoreCase = true) ||
                 className.contains("bottom", ignoreCase = true) ||
                 className.contains("tab", ignoreCase = true) ||
                 className.contains("hova", ignoreCase = true)
         }
 
-        return matchesNavigationName || matchesNavigationClass
+        if (viewChain.none(::isExactMatch) && viewChain.none(::hasMarker)) {
+            return null
+        }
+
+        var sawSpotlightMarker = false
+        viewChain.forEach { metadata ->
+            if (isExactMatch(metadata) || hasMarker(metadata)) {
+                sawSpotlightMarker = true
+            }
+
+            if (sawSpotlightMarker && isNavigationLike(metadata)) {
+                return metadata.view
+            }
+        }
+
+        return viewChain.firstOrNull(::isExactMatch)?.view
     }
 
     private fun onActivityCreate() {
@@ -143,13 +172,21 @@ class UITweaks : Feature("UITweaks") {
             getId("hova_nav_spotlight", "id"),
             getId("ngs_hova_nav_spotlight", "id"),
             getId("hova_nav_spotlight_tab", "id"),
-            getId("hova_nav_spotlight_button", "id")
+            getId("hova_nav_spotlight_button", "id"),
+            getId("hova_nav_discover", "id"),
+            getId("ngs_hova_nav_discover", "id"),
+            getId("hova_nav_discover_tab", "id"),
+            getId("hova_nav_discover_button", "id")
         ).filter { it != 0 }.toSet()
         val spotlightNavNames = setOf(
             "hova_nav_spotlight",
             "ngs_hova_nav_spotlight",
             "hova_nav_spotlight_tab",
-            "hova_nav_spotlight_button"
+            "hova_nav_spotlight_button",
+            "hova_nav_discover",
+            "ngs_hova_nav_discover",
+            "hova_nav_discover_tab",
+            "hova_nav_discover_button"
         )
 
         Resources::class.java.methods.first { it.name == "getDimensionPixelSize" }.hook(
@@ -196,8 +233,11 @@ class UITweaks : Feature("UITweaks") {
                 hideStorySection(event)
             }
 
-            if (disableSpotlight && shouldHideSpotlightNav(event, spotlightNavIds, spotlightNavNames)) {
-                view.hideViewCompletely()
+            findSpotlightNavTarget(event, spotlightNavIds, spotlightNavNames)?.takeIf { disableSpotlight }?.let { targetView ->
+                targetView.hideViewCompletely()
+                if (targetView !== view) {
+                    view.hideViewCompletely()
+                }
                 event.canceled = true
                 return@subscribe
             }
