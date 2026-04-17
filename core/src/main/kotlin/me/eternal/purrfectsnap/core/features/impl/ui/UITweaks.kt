@@ -74,24 +74,47 @@ class UITweaks : Feature("UITweaks") {
         spotlightNavIds: Set<Int>,
         spotlightNavNames: Set<String>
     ): Boolean {
-        fun resourceEntryNameOrNull(id: Int): String? {
+        fun resourceEntryNameOrNull(view: View): String? {
+            val id = view.id
             if (id == View.NO_ID || id == 0) return null
             return runCatching { context.resources.getResourceEntryName(id) }.getOrNull()
         }
 
-        val viewId = event.view.id
-        val parentId = event.parent.id
-        if (viewId in spotlightNavIds || parentId in spotlightNavIds) return true
+        val views = buildList {
+            var current: View? = event.view
+            repeat(5) {
+                current ?: return@repeat
+                add(current!!)
+                current = current?.parent as? View
+            }
+        }
 
-        val resourceNames = listOfNotNull(
-            resourceEntryNameOrNull(viewId),
-            resourceEntryNameOrNull(parentId)
-        )
+        if (views.any { it.id in spotlightNavIds }) return true
+
+        val resourceNames = views.mapNotNull(::resourceEntryNameOrNull)
 
         if (resourceNames.any { it in spotlightNavNames }) return true
 
         // Keep the fallback scoped to home/bottom navigation resource names so
         // chat media viewers and spotlight-related content surfaces still open.
+        val classNames = views.map { it.javaClass.name }
+        val contentDescriptions = views.mapNotNull { it.contentDescription?.toString() }
+
+        val hasSpotlightMarker = resourceNames.any { it.contains("spotlight", ignoreCase = true) } ||
+            contentDescriptions.any { it.contains("spotlight", ignoreCase = true) }
+
+        if (!hasSpotlightMarker) return false
+
+        return resourceNames.any { resourceEntryName ->
+            (
+                resourceEntryName.contains("spotlight", ignoreCase = true) ||
+                    resourceEntryName.contains("following", ignoreCase = true)
+                ) &&
+                (
+                    resourceEntryName.contains("hova_nav", ignoreCase = true) ||
+                        resourceEntryName.contains("bottom_nav", ignoreCase = true) ||
+                        resourceEntryName.contains("nav", ignoreCase = true) ||
+                        resourceEntryName.contains("tab", ignoreCase = true)
         return resourceNames.any { resourceEntryName ->
             resourceEntryName.contains("spotlight", ignoreCase = true) &&
                 (
@@ -99,6 +122,11 @@ class UITweaks : Feature("UITweaks") {
                         resourceEntryName.contains("bottom_nav", ignoreCase = true) ||
                         resourceEntryName.contains("nav", ignoreCase = true)
                     )
+        } || classNames.any { className ->
+            className.contains("navigation", ignoreCase = true) ||
+                className.contains("bottom", ignoreCase = true) ||
+                className.contains("tab", ignoreCase = true) ||
+                className.contains("hova", ignoreCase = true)
         }
     }
 
