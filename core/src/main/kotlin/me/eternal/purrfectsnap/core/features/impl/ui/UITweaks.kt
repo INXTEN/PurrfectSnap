@@ -92,15 +92,12 @@ class UITweaks : Feature("UITweaks") {
 
         // Keep the fallback scoped to home/bottom navigation resource names so
         // chat media viewers and spotlight-related content surfaces still open.
-        val parentClassName = event.parent.javaClass.name
-        val isHomeNavigationContainer = parentClassName.contains("hova", ignoreCase = true) &&
-            (parentClassName.contains("nav", ignoreCase = true) || parentClassName.contains("tab", ignoreCase = true))
-
-        return isHomeNavigationContainer && resourceNames.any { resourceEntryName ->
+        return resourceNames.any { resourceEntryName ->
             resourceEntryName.contains("spotlight", ignoreCase = true) &&
                 (
                     resourceEntryName.contains("hova_nav", ignoreCase = true) ||
-                        resourceEntryName.contains("bottom_nav", ignoreCase = true)
+                        resourceEntryName.contains("bottom_nav", ignoreCase = true) ||
+                        resourceEntryName.contains("nav", ignoreCase = true)
                     )
         }
     }
