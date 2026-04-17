@@ -115,28 +115,6 @@ class UITweaks : Feature("UITweaks") {
                     resourceEntryName.contains("nav", ignoreCase = true) ||
                     resourceEntryName.contains("tab", ignoreCase = true)
             isSpotlightTabName && isNavigationName
-        return resourceNames.any { resourceEntryName ->
-            (
-                resourceEntryName.contains("spotlight", ignoreCase = true) ||
-                    resourceEntryName.contains("following", ignoreCase = true)
-                ) &&
-                (
-                    resourceEntryName.contains("hova_nav", ignoreCase = true) ||
-                        resourceEntryName.contains("bottom_nav", ignoreCase = true) ||
-                        resourceEntryName.contains("nav", ignoreCase = true) ||
-                        resourceEntryName.contains("tab", ignoreCase = true)
-        return resourceNames.any { resourceEntryName ->
-            resourceEntryName.contains("spotlight", ignoreCase = true) &&
-                (
-                    resourceEntryName.contains("hova_nav", ignoreCase = true) ||
-                        resourceEntryName.contains("bottom_nav", ignoreCase = true) ||
-                        resourceEntryName.contains("nav", ignoreCase = true)
-                    )
-        } || classNames.any { className ->
-            className.contains("navigation", ignoreCase = true) ||
-                className.contains("bottom", ignoreCase = true) ||
-                className.contains("tab", ignoreCase = true) ||
-                className.contains("hova", ignoreCase = true)
         }
 
         val matchesNavigationClass = classNames.any { className ->
