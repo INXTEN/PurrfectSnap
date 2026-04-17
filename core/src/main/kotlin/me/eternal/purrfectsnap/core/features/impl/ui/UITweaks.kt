@@ -71,20 +71,38 @@ class UITweaks : Feature("UITweaks") {
 
     private fun shouldHideSpotlightNav(
         event: AddViewEvent,
-        spotlightNavIds: Set<Int>
+        spotlightNavIds: Set<Int>,
+        spotlightNavNames: Set<String>
     ): Boolean {
+        fun resourceEntryNameOrNull(id: Int): String? {
+            if (id == View.NO_ID || id == 0) return null
+            return runCatching { context.resources.getResourceEntryName(id) }.getOrNull()
+        }
+
         val viewId = event.view.id
-        if (viewId in spotlightNavIds) return true
+        val parentId = event.parent.id
+        if (viewId in spotlightNavIds || parentId in spotlightNavIds) return true
+
+        val resourceNames = listOfNotNull(
+            resourceEntryNameOrNull(viewId),
+            resourceEntryNameOrNull(parentId)
+        )
+
+        if (resourceNames.any { it in spotlightNavNames }) return true
 
         // Keep the fallback scoped to home/bottom navigation resource names so
         // chat media viewers and spotlight-related content surfaces still open.
-        val resourceEntryName = runCatching { context.resources.getResourceEntryName(viewId) }.getOrNull()
-            ?: return false
-        return resourceEntryName.contains("spotlight", ignoreCase = true) &&
-            (
-                resourceEntryName.contains("hova_nav", ignoreCase = true) ||
-                    resourceEntryName.contains("bottom_nav", ignoreCase = true)
-                )
+        val parentClassName = event.parent.javaClass.name
+        val isHomeNavigationContainer = parentClassName.contains("hova", ignoreCase = true) &&
+            (parentClassName.contains("nav", ignoreCase = true) || parentClassName.contains("tab", ignoreCase = true))
+
+        return isHomeNavigationContainer && resourceNames.any { resourceEntryName ->
+            resourceEntryName.contains("spotlight", ignoreCase = true) &&
+                (
+                    resourceEntryName.contains("hova_nav", ignoreCase = true) ||
+                        resourceEntryName.contains("bottom_nav", ignoreCase = true)
+                    )
+        }
     }
 
     private fun onActivityCreate() {
@@ -105,6 +123,12 @@ class UITweaks : Feature("UITweaks") {
             getId("hova_nav_spotlight_tab", "id"),
             getId("hova_nav_spotlight_button", "id")
         ).filter { it != 0 }.toSet()
+        val spotlightNavNames = setOf(
+            "hova_nav_spotlight",
+            "ngs_hova_nav_spotlight",
+            "hova_nav_spotlight_tab",
+            "hova_nav_spotlight_button"
+        )
 
         Resources::class.java.methods.first { it.name == "getDimensionPixelSize" }.hook(
             HookStage.AFTER,
@@ -150,7 +174,7 @@ class UITweaks : Feature("UITweaks") {
                 hideStorySection(event)
             }
 
-            if (disableSpotlight && shouldHideSpotlightNav(event, spotlightNavIds)) {
+            if (disableSpotlight && shouldHideSpotlightNav(event, spotlightNavIds, spotlightNavNames)) {
                 view.hideViewCompletely()
                 event.canceled = true
                 return@subscribe
