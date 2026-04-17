@@ -115,6 +115,12 @@ class UITweaks : Feature("UITweaks") {
                         resourceEntryName.contains("bottom_nav", ignoreCase = true) ||
                         resourceEntryName.contains("nav", ignoreCase = true) ||
                         resourceEntryName.contains("tab", ignoreCase = true)
+        return resourceNames.any { resourceEntryName ->
+            resourceEntryName.contains("spotlight", ignoreCase = true) &&
+                (
+                    resourceEntryName.contains("hova_nav", ignoreCase = true) ||
+                        resourceEntryName.contains("bottom_nav", ignoreCase = true) ||
+                        resourceEntryName.contains("nav", ignoreCase = true)
                     )
         } || classNames.any { className ->
             className.contains("navigation", ignoreCase = true) ||
