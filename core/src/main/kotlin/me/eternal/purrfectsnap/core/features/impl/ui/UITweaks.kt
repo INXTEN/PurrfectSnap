@@ -156,6 +156,66 @@ class UITweaks : Feature("UITweaks") {
         return viewChain.firstOrNull(::isExactMatch)?.view
     }
 
+    private fun findSpotlightHeaderTabsTarget(view: View): View? {
+        fun collectTextLabels(current: View, depth: Int = 0, maxDepth: Int = 2): List<String> {
+            if (depth > maxDepth) return emptyList()
+
+            val ownText = listOfNotNull(
+                current.contentDescription?.toString(),
+                (current as? TextView)?.text?.toString()
+            ).filter { it.isNotBlank() }
+
+            if (current !is ViewGroup) return ownText
+
+            return ownText + current.children().flatMap { child ->
+                collectTextLabels(child, depth + 1, maxDepth)
+            }
+        }
+
+        fun isHeaderMarkerText(value: String): Boolean {
+            return value.contains("spotlight", ignoreCase = true) ||
+                value.contains("discover", ignoreCase = true) ||
+                value.contains("following", ignoreCase = true)
+        }
+
+        val candidateChain = buildList {
+            var current: View? = view
+            repeat(6) {
+                current ?: return@repeat
+                add(current!!)
+                current = current?.parent as? View
+            }
+        }
+
+        candidateChain.forEach { candidate ->
+            val group = candidate as? ViewGroup ?: return@forEach
+            if (group.childCount !in 2..4) return@forEach
+
+            val directMarkedChildren = group.children().count { child ->
+                collectTextLabels(child).any(::isHeaderMarkerText)
+            }
+
+            if (directMarkedChildren < 2) return@forEach
+
+            val texts = collectTextLabels(group)
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+                .distinct()
+
+            val hasSpotlightOrDiscover = texts.any {
+                it.contains("spotlight", ignoreCase = true) ||
+                    it.contains("discover", ignoreCase = true)
+            }
+            val hasFollowing = texts.any { it.contains("following", ignoreCase = true) }
+
+            if (hasSpotlightOrDiscover && hasFollowing) {
+                return group
+            }
+        }
+
+        return null
+    }
+
     private fun onActivityCreate() {
         val blockAds by context.config.global.blockAds
         val hiddenElements by context.config.userInterface.hideUiComponents
@@ -223,6 +283,10 @@ class UITweaks : Feature("UITweaks") {
                     return@subscribe
                 }
             }
+        }
+
+        context.event.subscribe(BindViewEvent::class, { disableSpotlight }) { event ->
+            findSpotlightHeaderTabsTarget(event.view)?.hideViewCompletely()
         }
 
         context.event.subscribe(AddViewEvent::class) { event ->
