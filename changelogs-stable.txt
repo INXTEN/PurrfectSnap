@@ -1,3 +1,14 @@
+## v1.6.9
+- New: Updated the Stealth mode for better visibility with the chat stealth mode (keeps chats from being read), and snap stealth-mode and full stealth mode toggle (normal stealth-mode). (tq Javalsta) 
+- Fix: Fixed performance mode profile save/load so Disabled persists correctly and no longer falls back to Max mode on app restart. (tq schrodingerspet)
+- Fix: Fixed the resume/reopen UI break when max performance mode is turned on, and other bug fixes. (tq schrodingerspet)
+- New: Implemented an Auto Open Stop Button directly within the notification card.
+- New: Added a log filter menu in logs page to isolate Auto-Open, Media downloads, friend tracker, and Core logs. 
+- Fix: Completely rewritten Auto Open Engine to optimize the auto open engine. 
+- Fix: Fixed Batch Story Download feature not working.
+- FIx: Minor bug fixes for media downloader in stories and spotlight.
+- Fix: Bug fixes to improve custom emojis stability.
+
 ## v1.6.8
 - Fix: Many improvements to the Performance Mode feature(Max, turned on by Default), changes are pretty noticeable: faster loading of chats, long group messages optimizations, many snapmap optimizations
 - Fix: Crash issues for some devices
